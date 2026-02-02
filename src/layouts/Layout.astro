@@ -7,6 +7,7 @@ import KatexManager from "@components/features/KatexManager.astro";
 import MusicPlayer from "@components/features/MusicPlayer.astro";
 import SakuraEffect from "@components/features/SakuraEffect.astro";
 import ConfigCarrier from "@components/layout/ConfigCarrier.astro";
+import IconifyLoader from "@components/misc/IconifyLoader.astro";
 
 import {
 	backgroundWallpaper,
@@ -412,6 +413,9 @@ const bannerOffset = `${BANNER_HEIGHT_EXTEND / 2}vh`;
 
     <!-- Font Manager -->
     <FontManager />
+    
+    <!-- Iconify Loader -->
+    <IconifyLoader />
   </head>
   <body
     class="min-h-screen"

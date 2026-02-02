@@ -44,8 +44,7 @@ const description = i18n(I18nKey.friendsDescription);
         </div>
         {
           description && (
-            <p class="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed mb-4">
-              {description}
+            <p class="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed mb-4" set:html={description}>
             </p>
           )
         }

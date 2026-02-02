@@ -1,4 +1,31 @@
-import type { SponsorConfig } from "../types/config";
+import type { SponsorConfig, SponsorItem } from "../types/config";
+
+// 使用 import.meta.glob 来动态导入所有 JSON 文件
+const sponsorFiles = import.meta.glob<SponsorItem>("../data/sponsors/*.json", { eager: true });
+
+// 读取赞助者列表
+function loadSponsors(): SponsorItem[] {
+	const sponsors: SponsorItem[] = [];
+
+	// 遍历所有导入的赞助者文件
+	for (const filePath in sponsorFiles) {
+		try {
+			const sponsorData = sponsorFiles[filePath];
+			if (sponsorData.name) {
+				sponsors.push({
+					name: sponsorData.name,
+					amount: sponsorData.amount,
+					date: sponsorData.date,
+					message: sponsorData.message,
+				});
+			}
+		} catch (error) {
+			console.error(`Error processing sponsor file ${filePath}:`, error);
+		}
+	}
+
+	return sponsors;
+}
 
 export const sponsorConfig: SponsorConfig = {
 	// 页面标题，如果留空则使用 i18n 中的翻译
@@ -16,6 +43,9 @@ export const sponsorConfig: SponsorConfig = {
 
 	// 是否在文章详情页底部显示赞助按钮
 	showButtonInPost: true,
+
+	// 赞助列表下方的留言
+	footerMessage: "如果您已赞助，并且想加入赞助名单，请<a href='https://github.com/GrushTom/astroGT' target='_blank' rel='noopener noreferrer' class='text-[var(--primary)] hover:underline'>点击这里提交</a>。",
 
 	// 赞助方式列表
 	methods: [
@@ -54,21 +84,6 @@ export const sponsorConfig: SponsorConfig = {
 		},
 	],
 
-	// 赞助者列表（可选）
-	sponsors: [
-		// 示例：已实名赞助者
-		{
-			name: "夏叶",
-			amount: "¥50",
-			date: "2025-10-01",
-			message: "感谢分享！",
-		},
-
-		// 示例：匿名赞助者
-		{
-			name: "匿名用户",
-			amount: "¥20",
-			date: "2025-10-01",
-		},
-	],
+	// 赞助者列表（从JSON文件读取）
+	sponsors: loadSponsors(),
 };
