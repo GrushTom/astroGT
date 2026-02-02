@@ -45,7 +45,7 @@ export const sponsorConfig: SponsorConfig = {
 	showButtonInPost: true,
 
 	// 赞助列表下方的留言
-	footerMessage: "如果您已赞助，并且想加入赞助名单，请<a href='https://github.com/GrushTom/astroGT' target='_blank' rel='noopener noreferrer' class='text-[var(--primary)] hover:underline'>点击这里提交</a>。",
+	footerMessage: "如果您已赞助，并且想加入赞助名单，请<a href='https://github.com/GrushTom/astroGT/tree/master/src/data/sponsors' target='_blank' rel='noopener noreferrer' class='text-[var(--primary)] hover:underline'>点击这里提交</a>。",
 
 	// 赞助方式列表
 	methods: [
