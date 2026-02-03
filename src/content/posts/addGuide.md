@@ -21,7 +21,7 @@ pinned: true
 
 当按钮变为 `已关注`时，你就成功关注了机体！
 ## 现在加群
-![httpsqm.qq.comq5UtSiP7oZO.png](https://img.grushtom.com/file/1768979908651_httpsqm.qq.comq5UtSiP7oZO.png)
+![群二维码](https://img.grushtom.com/file/1768979908651_httpsqm.qq.comq5UtSiP7oZO.png)
 
 
 
