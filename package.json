@@ -45,7 +45,7 @@
     "hastscript": "^9.0.1",
     "katex": "^0.16.27",
     "markdown-it": "^14.1.0",
-    "marked": "^16.4.2",
+    "marked": "^17.0.1",
     "mdast-util-to-string": "^4.0.0",
     "node-html-parser": "^7.0.2",
     "overlayscrollbars": "^2.13.0",
