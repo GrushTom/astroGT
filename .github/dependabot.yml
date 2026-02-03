@@ -3,20 +3,8 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "daily"
-    groups:
-      patch-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "patch"
-      minor-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-    pull-request-branch-name:
-      separator: "-"
+      interval: "monthly"  # 从 daily 改为 monthly
+    open-pull-requests-limit: 3  # 限制同时打开的 PR 数量
     ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: "*"  # 忽略所有依赖
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
