@@ -40,7 +40,7 @@
     "astro-expressive-code": "^0.41.5",
     "astro-icon": "^1.1.5",
     "dayjs": "^1.11.19",
-    "glob": "^11.1.0",
+    "glob": "^13.0.0",
     "gray-matter": "^4.0.3",
     "hastscript": "^9.0.1",
     "katex": "^0.16.27",
