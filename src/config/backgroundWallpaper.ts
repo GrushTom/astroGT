@@ -4,23 +4,11 @@ export const backgroundWallpaper: BackgroundWallpaperConfig = {
 	// 壁纸模式："banner" 横幅壁纸，"overlay" 全屏透明，"none" 纯色背景无壁纸
 	mode: "banner",
 	// 是否允许用户通过导航栏切换壁纸模式，设为false可提升性能（只渲染当前模式）
-	switchable: true,
+	switchable: false,
 	// 背景图片配置
 	src: {
 		// 桌面背景图片 - 支持数组，随机选择
-		desktop: [
-			"/assets/images/d1.webp",
-			"/assets/images/1.jpg",
-			"/assets/images/2.jpg",
-			"/assets/images/3.jpg",
-			"/assets/images/4.jpg",
-			"/assets/images/5.jpg",
-			"/assets/images/6.jpg",
-			"/assets/images/7.jpg",
-			"/assets/images/8.jpg",
-			"/assets/images/9.jpg",
-			"/assets/images/10.jpg"
-		],
+		desktop: "https://t.alcy.cc/pc",
 		// 移动背景图片 - 支持数组，随机选择
 		mobile: [
 			"/assets/images/m1.webp",
