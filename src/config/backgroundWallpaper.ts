@@ -8,10 +8,16 @@ export const backgroundWallpaper: BackgroundWallpaperConfig = {
 	// 背景图片配置
 	src: {
 		// 桌面背景图片 - 支持数组，随机选择
-		desktop: "https://t.alcy.cc/pc",
+		desktop: [
+			"https://i.mukyu.ru/random?imgproxy=pixiv.nl&size=regular",
+			"https://t.alcy.cc/pc",
+			// "https://i.mukyu.ru/random?imgproxy=pixiv.re&size=regular",  备用接口
+			// "https://i.mukyu.ru/random?imgproxy=pixiv.cat&size=regular", 
+		],
 		// 移动背景图片 - 支持数组，随机选择
 		mobile: [
-			"/assets/images/m1.webp",
+			"https://i.mukyu.ru/random?imgproxy=pixiv.nl&size=regular",
+			"https://t.alcy.cc/mp",
 		],
 	},
 	// Banner模式特有配置

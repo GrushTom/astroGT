@@ -5,7 +5,7 @@ export const fontConfig = {
 	// 是否预加载字体文件
 	preload: true,
 	// 当前选择的字体，支持多个字体组合
-	selected: ["zen-maru-gothic", "inter"],
+	selected: ["misans-semibold", "inter"],
 
 	// 字体列表
 	fonts: {

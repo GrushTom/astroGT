@@ -7,17 +7,17 @@ const SITE_LANG = "zh_CN";
 
 export const siteConfig: SiteConfig = {
 	// 站点标题
-	title: "GrushTomの部屋",
+	title: "GrushTom's Blog",
 
 	// 站点副标题
-	subtitle: "Firefly",
+	subtitle: "MC",
 
 	// 站点 URL
 	site_url: "https://blog.grushtom.com/",
 
 	// 站点描述
 	description:
-		"欢迎访问 GrushTomの部屋，这里记录了我的学习经历、项目经验和个人思考。个人技术博客分享ACGN相关内容、技术教程和生活感悟，基于Astro框架构建的静态博客。",
+		"欢迎访问 GrushTom's Blog，这里记录了我的学习经历、项目经验和个人思考。个人技术博客分享ACGN相关内容、技术教程和生活感悟，基于Astro框架构建的静态博客。",
 
 	// 站点关键词
 	keywords: [
@@ -69,7 +69,7 @@ export const siteConfig: SiteConfig = {
 			alt: "🍀",
 		},
 		// 导航栏标题
-		title: "GrushTomの部屋",
+		title: "GrushTom's Blog",
 		// 全宽导航栏，导航栏是否占满屏幕宽度，true：占满，false：不占满
 		widthFull: false,
 		// 导航栏图标和标题是否跟随主题色
