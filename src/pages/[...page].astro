@@ -3,7 +3,10 @@ import type { GetStaticPaths } from "astro";
 import Pagination from "@/components/common/Pagination.astro";
 import PostPage from "@/components/layout/PostPage.astro";
 import { siteConfig } from "@/config";
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import "@/styles/banner-home.css";
 import { getSortedPosts } from "@/utils/content-utils";
 export const getStaticPaths = (async ({ paginate }) => {
 	const allBlogPosts = await getSortedPosts();
@@ -16,9 +19,15 @@ export const getStaticPaths = (async ({ paginate }) => {
 const { page } = Astro.props;
 
 const len = page.data.length;
+
+// 列表页隐藏的 h1：首屏用站点标题，后续页用「首页 · 页码」，避免空 h1
+const heading =
+	page.currentPage === 1
+		? siteConfig.title
+		: `${i18n(I18nKey.home)} · ${page.currentPage}`;
 ---
 
-<MainGridLayout>
+<MainGridLayout heading={heading}>
   <PostPage page={page} />
   {
     page.total > page.size && (

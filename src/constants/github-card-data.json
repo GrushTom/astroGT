@@ -1,0 +1,20 @@
+{
+	"cuteleaf/firefly": {
+		"description": "🍀Firefly, fresh and aesthetic Astro blog theme template. ",
+		"language": "Astro",
+		"avatarUrl": "https://avatars.githubusercontent.com/u/43440669?v=4",
+		"license": "MIT"
+	},
+	"grushtom/firefly": {
+		"description": "流萤，这是一款清新美观的 Astro 博客主题模板 | a fresh and visually appealing Astro blog theme template, Secondary development based on Fuwari.",
+		"language": null,
+		"avatarUrl": "https://avatars.githubusercontent.com/u/78252298?v=4",
+		"license": "MIT"
+	},
+	"saicaca/fuwari": {
+		"description": "✨A static blog template built with Astro. ",
+		"language": "Astro",
+		"avatarUrl": "https://avatars.githubusercontent.com/u/25200299?v=4",
+		"license": "MIT"
+	}
+}

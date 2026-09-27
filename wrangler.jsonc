@@ -1,7 +1,8 @@
 {
-	"name":"astro",
-	"compatibility_date":"2026-01-21",
-	"assets":{
-		"directory":"./dist"
+	"name": "astro",
+	"compatibility_date": "2026-01-21",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"directory": "./dist"
 	}
 }

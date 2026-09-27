@@ -85,15 +85,16 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 
     private type() {
       const currentText = this.getCurrentText();
+      const segments = this.segmentText(currentText);
 
       if (this.isDeleting) {
         // 删除字符
         if (this.currentIndex > 0) {
           this.currentIndex--;
-          this.element.textContent = currentText.substring(
-            0,
-            this.currentIndex
-          );
+          this.element.textContent = segments
+            .slice(0, this.currentIndex)
+            .join("");
+
           this.timeoutId = window.setTimeout(
             () => this.type(),
             this.deleteSpeed
@@ -106,13 +107,12 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
           this.timeoutId = window.setTimeout(() => this.type(), this.speed);
         }
       } else {
-        // 添加字符
-        if (this.currentIndex < currentText.length) {
+        if (this.currentIndex < segments.length) {
           this.currentIndex++;
-          this.element.textContent = currentText.substring(
-            0,
-            this.currentIndex
-          );
+          this.element.textContent = segments
+            .slice(0, this.currentIndex)
+            .join("");
+
           this.timeoutId = window.setTimeout(() => this.type(), this.speed);
         } else {
           // 打字完成，暂停后开始删除（如果有多条文本）
@@ -133,23 +133,53 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
         clearTimeout(this.timeoutId);
       }
     }
+
+    private segmentText(text: string): string[] {
+      const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+      return Array.from(segmenter.segment(text), s => s.segment);
+    }
+
+  }
+
+  function initTypewriterElements() {
+    const typewriterElements = document.querySelectorAll(".typewriter");
+    typewriterElements.forEach((element) => {
+      const el = element as HTMLElement & { __typewriterInstance?: TypewriterEffect };
+      if (el.__typewriterInstance) {
+        el.__typewriterInstance.destroy();
+      }
+      el.textContent = "";
+      el.__typewriterInstance = new TypewriterEffect(el);
+    });
   }
 
   // 初始化所有打字机效果
-  document.addEventListener("DOMContentLoaded", () => {
-    const typewriterElements = document.querySelectorAll(".typewriter");
-    typewriterElements.forEach((element) => {
-      new TypewriterEffect(element as HTMLElement);
-    });
-  });
+  function runInitWithDelay() {
+    initTypewriterElements();
+    // 兼容 banner 显隐晚于内容替换的场景
+    setTimeout(initTypewriterElements, 220);
+  }
 
-  // 支持页面切换时重新初始化
-  document.addEventListener("swup:contentReplaced", () => {
-    const typewriterElements = document.querySelectorAll(".typewriter");
-    typewriterElements.forEach((element) => {
-      new TypewriterEffect(element as HTMLElement);
-    });
-  });
+  // 防止 Swup 切页重跑脚本时重复注册监听器/hooks（runInitWithDelay 由下方一次性监听器在切页时触发）
+  if (!window.__typewriterTextInit) {
+    window.__typewriterTextInit = true;
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", runInitWithDelay);
+    } else {
+      runInitWithDelay();
+    }
+
+    // 支持页面切换时重新初始化（兼容不同 swup 事件名）
+    document.addEventListener("swup:contentReplaced", runInitWithDelay);
+    document.addEventListener("swup:content:replace", runInitWithDelay);
+    document.addEventListener("swup:page:view", runInitWithDelay);
+
+    // swup hooks（若可用）
+    if (typeof window !== "undefined" && window.swup?.hooks) {
+      window.swup.hooks.on("content:replace", runInitWithDelay);
+      window.swup.hooks.on("page:view", runInitWithDelay);
+    }
+  }
 </script>
 
 <style>

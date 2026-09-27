@@ -4,10 +4,14 @@
 declare global {
 	interface ImportMetaEnv {
 		readonly MEILI_MASTER_KEY: string;
+		// 视图设置面板总开关，可在部署平台配置（true / 1 / on / yes 开启）
+		readonly PUBLIC_DISPLAY_SETTINGS?: string;
 	}
 
 	interface ITOCManager {
 		init: () => void;
+		render: () => void;
+		attach: () => void;
 		cleanup: () => void;
 	}
 
@@ -23,17 +27,26 @@ declare global {
 		};
 		toggleFloatingTOC: () => void;
 		tocInternalNavigation: boolean;
-		iconifyLoaded: boolean;
+		ImmersiveReading: {
+			btn: HTMLElement | null;
+			tocBtn: HTMLElement | null;
+			toc: HTMLElement | null;
+			manager: ITOCManager | null;
+			prevScroll: number;
+			isImmersive: boolean;
+		};
+		toggleImmersiveReading: () => void;
+		enterImmersiveReading: () => void;
+		exitImmersiveReading: () => void;
+		toggleImmersiveTOC: () => void;
+		__immersiveReadingInit?: boolean;
 		// swup is defined in global.d.ts
 		// biome-ignore lint/suspicious/noExplicitAny: External library without types
 		spine: any;
 		closeAnnouncement: () => void;
-		// biome-ignore lint/suspicious/noExplicitAny: External library without types
-		__iconifyLoader: any;
-		__iconifyLoaderInitialized: boolean;
-		loadIconify: () => Promise<void>;
-		preloadIcons: (icons: string | string[]) => void;
-		onIconifyReady: (callback: () => void) => void;
+		// __fireflyMusic type is defined in global.d.ts
+		semifullScrollHandler?: (() => void) | undefined;
+		initSemifullScrollDetection?: () => void;
 	}
 }
 

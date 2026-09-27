@@ -1,7 +1,21 @@
 import { backgroundWallpaper } from "../config";
 
+export type BackgroundImages = {
+	desktop: string[];
+	mobile: string[];
+	isMultiple: boolean;
+};
+
+// 将单个值或数组统一为数组
+const toArray = (src: string | string[] | undefined): string[] => {
+	if (!src) return [];
+	if (Array.isArray(src)) return src;
+	return [src];
+};
+
 // 背景图片处理工具函数
-export const getBackgroundImages = () => {
+// 返回所有配置的图片（用于构建时渲染所有图片）
+export const getBackgroundImages = (): BackgroundImages => {
 	const bgSrc = backgroundWallpaper.src;
 
 	if (
@@ -14,26 +28,20 @@ export const getBackgroundImages = () => {
 			desktop?: string | string[];
 			mobile?: string | string[];
 		};
-		
-		// 处理图片源，支持字符串和数组
-		const processImage = (img: string | string[] | undefined): string => {
-			if (!img) return "";
-			if (Array.isArray(img)) {
-				// 随机选择一个图片
-				return img[Math.floor(Math.random() * img.length)];
-			}
-			return img;
-		};
-		
+		const desktopImages = toArray(srcObj.desktop);
+		const mobileImages = toArray(srcObj.mobile);
 		return {
-			desktop: processImage(srcObj.desktop) || processImage(srcObj.mobile) || "",
-			mobile: processImage(srcObj.mobile) || processImage(srcObj.desktop) || "",
+			desktop: desktopImages.length > 0 ? desktopImages : mobileImages,
+			mobile: mobileImages.length > 0 ? mobileImages : desktopImages,
+			isMultiple: desktopImages.length > 1 || mobileImages.length > 1,
 		};
 	}
-	// 如果是字符串，同时用于桌面端和移动端
+	// 如果是字符串或数组，同时用于桌面端和移动端
+	const images = toArray(bgSrc as string | string[]);
 	return {
-		desktop: bgSrc,
-		mobile: bgSrc,
+		desktop: images,
+		mobile: images,
+		isMultiple: images.length > 1,
 	};
 };
 
@@ -52,33 +60,10 @@ export const isBannerSrcObject = (
 	);
 };
 
-// 获取默认背景图片
+// 获取默认背景图片（返回第一张，用于 SEO 等场景）
 export const getDefaultBackground = (): string => {
-	const src = backgroundWallpaper.src;
-	if (typeof src === "string") {
-		return src;
-	}
-	if (src && typeof src === "object" && !Array.isArray(src)) {
-		// 优先使用desktop，如果没有则使用mobile
-		const processImage = (img: string | string[] | undefined): string => {
-			if (!img) return "";
-			if (Array.isArray(img)) {
-				// 随机选择一个图片
-				return img[Math.floor(Math.random() * img.length)];
-			}
-			return img;
-		};
-		
-		const desktopSrc = processImage(src.desktop);
-		const mobileSrc = processImage(src.mobile);
-		if (desktopSrc) {
-			return desktopSrc;
-		}
-		if (mobileSrc) {
-			return mobileSrc;
-		}
-	}
-	return "";
+	const images = getBackgroundImages();
+	return images.desktop[0] || images.mobile[0] || "";
 };
 
 // 检查是否为首页
@@ -95,7 +80,7 @@ export const isHomePage = (pathname: string): boolean => {
 };
 
 // 获取横幅偏移量
-export const getBannerOffset = (position = "center") => {
+export const getBannerOffset = (position = "center"): string => {
 	const bannerOffsetByPosition = {
 		top: "100vh",
 		center: "50vh",

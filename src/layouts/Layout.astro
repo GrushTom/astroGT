@@ -1,47 +1,73 @@
 ---
 import GoogleAnalytics from "@components/analytics/GoogleAnalytics.astro";
+import La51Analytics from "@components/analytics/La51Analytics.astro";
 import MicrosoftClarity from "@components/analytics/MicrosoftClarity.astro";
+import UmamiAnalytics from "@components/analytics/UmamiAnalytics.astro";
+import CodeGroupManager from "@components/features/CodeGroupManager.astro";
 import FancyboxManager from "@components/features/FancyboxManager.astro";
-import FontManager from "@components/features/FontManager.astro";
-import KatexManager from "@components/features/KatexManager.astro";
-import MusicPlayer from "@components/features/MusicPlayer.astro";
+import FontSetup from "@components/features/FontSetup.astro";
+import GithubCardManager from "@components/features/GithubCardManager.astro";
+import MusicManager from "@components/features/MusicManager.astro";
+import MusicPlayerView from "@components/features/MusicPlayerView.astro";
 import SakuraEffect from "@components/features/SakuraEffect.astro";
+import WavesEffect from "@components/features/WavesEffect.astro";
 import ConfigCarrier from "@components/layout/ConfigCarrier.astro";
-import IconifyLoader from "@components/misc/IconifyLoader.astro";
 
 import {
+	analyticsConfig,
 	backgroundWallpaper,
+	displaySettingsConfig,
 	expressiveCodeConfig,
+	musicPlayerConfig,
+	navbarMode,
 	profileConfig,
 	siteConfig,
 } from "@/config";
 import {
 	BANNER_HEIGHT,
-	BANNER_HEIGHT_EXTEND,
 	BANNER_HEIGHT_HOME,
+	BANNER_HEIGHT_NON_HOME,
+	BANNER_HEIGHT_NON_HOME_MIN,
 	PAGE_WIDTH,
 } from "@/constants/constants";
 import { defaultFavicons } from "@/constants/icon";
 import type { Favicon } from "@/types/config";
-import { getDefaultBackground, isHomePage } from "@/utils/layout-utils";
-import { url } from "@/utils/url-utils";
+import { isHomePage } from "@/utils/layout-utils";
+import { getAuthorAvatarUrl, getSiteLogo } from "@/utils/schema-image";
+import { buildSiteGraph, toAbsoluteUrl } from "@/utils/schema-utils";
+import { getOgLocale } from "@/utils/site-config-utils";
+import { getCanonicalUrl, url } from "@/utils/url-utils";
 
-import "@/styles/navbar.css";
-import "@/styles/layout-styles.css";
-import "@/styles/waves.css";
+import "@/styles/main.css";
+import "@/styles/immersive-reading.css";
+import "@/styles/variables.styl";
 import "@rehype-callouts-theme";
 
 interface Props {
 	title?: string;
-	banner?: string;
 	description?: string;
 	lang?: string;
 	setOGTypeArticle?: boolean;
 	postSlug?: string;
+	postCoverImage?: string;
+	ogImageWidth?: number;
+	ogImageHeight?: number;
+	ogImageAlt?: string;
+	hasWallpaper?: boolean;
 }
 
-let { title, banner, description, lang, setOGTypeArticle, postSlug } =
-	Astro.props;
+let {
+	title,
+	description,
+	lang,
+	setOGTypeArticle,
+	postSlug,
+	postCoverImage,
+	ogImageWidth: propsOgImageWidth,
+	ogImageHeight: propsOgImageHeight,
+	ogImageAlt: propsOgImageAlt,
+	hasWallpaper = false,
+} = Astro.props;
 
 // apply a class to the body element to decide the height of the banner, only used for initial page load
 // Swup can update the body for each page visit, but it's after the page transition, causing a delay for banner height change
@@ -52,21 +78,26 @@ const isHomePageCheck = isHomePage(Astro.url.pathname);
 // why doing this in Layout instead of GlobalStyles: https://github.com/withastro/astro/issues/6728#issuecomment-1502203757
 const configHue = siteConfig.themeColor.hue;
 
-// 获取导航栏透明模式配置
+// 获取导航栏透明模式配置（banner 模式专属）
 const navbarTransparentMode =
 	backgroundWallpaper.banner?.navbar?.transparentMode || "semi";
-// 判断是否应该显示顶部高光效果（只在full和semifull模式下显示）
-const shouldShowTopHighlight =
-	navbarTransparentMode === "full" || navbarTransparentMode === "semifull";
+// 判断是否应该显示顶部高光效果（只在 semifull 动态透明模式下显示）
+const shouldShowTopHighlight = navbarTransparentMode === "semifull";
 
-if (!banner || typeof banner !== "string" || banner.trim() === "") {
-	banner = getDefaultBackground();
-}
+// 全屏壁纸布局：classic 为文档流旧版，hero 为固定首屏新版
+const fullscreenLayout = backgroundWallpaper.fullscreen?.layout ?? "classic";
 
-// TODO don't use post cover as banner for now
-banner = getDefaultBackground();
-
-const enableBanner = backgroundWallpaper.mode === "banner";
+// 子菜单 / 浮动面板的毛玻璃模糊度：跟随 navbar.blur，但不受壁纸模式影响，
+// 且带一个最小值 —— 导航栏可以用 blur: 0 关掉毛玻璃，面板则始终保留毛玻璃。
+// 之所以不复用 #navbar 上的 --navbar-glass-blur：
+// setting-utils.ts 的 updateNavbarTransparency() 会在切到 overlay / none 模式时
+// 把它清成 0px；这里放到 :root 上，同时也能让不在导航栏 DOM 内的
+// .float-panel（#translate-panel、#mobile-toc-panel）继承到。
+const NAVBAR_PANEL_MIN_BLUR = 2;
+const navbarPanelBlur = Math.max(
+	backgroundWallpaper.banner?.navbar?.blur ?? 20,
+	NAVBAR_PANEL_MIN_BLUR,
+);
 
 let pageTitle: string;
 if (title) {
@@ -75,13 +106,11 @@ if (title) {
 	pageTitle = siteConfig.title;
 }
 
-let ogImageUrl: string | undefined;
-if (siteConfig.generateOgImages && postSlug) {
-	ogImageUrl = new URL(`/og/${postSlug}.png`, Astro.site).toString();
-}
-
 const favicons: Favicon[] =
 	siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
+// apple-touch-icon：优先取 favicon 中的 png，否则取第一个
+const appleTouchIcon =
+	favicons.find((f) => f.src.toLowerCase().endsWith(".png")) ?? favicons[0];
 
 // const siteLang = siteConfig.lang.replace('_', '-')
 if (!lang) {
@@ -89,23 +118,75 @@ if (!lang) {
 }
 const siteLang = lang.replace("_", "-");
 
+// 首页站点级结构化数据用的作者头像 URL（Person.image），经 toAbsoluteImageUrl 三分解析
+const avatarUrl = await getAuthorAvatarUrl();
+// 作者个人页（/about/）绝对 URL，作为 Person.url
+const aboutUrl =
+	toAbsoluteUrl("/about/", siteConfig.site_url) ?? siteConfig.site_url;
+// 站点 publisher logo（Organization.logo），用于首页 @graph 的 Organization 节点
+const siteLogo = await getSiteLogo();
+
+// canonical：对 /archive/ 与 /search/ 剥离查询串，避免筛选视图自我 canonical 到 ?tag= 等
+const canonicalUrl = getCanonicalUrl(Astro.url);
+
+// OG 图片：文章走生成图/封面，非文章页回退到站点 logo
+let ogImageUrl: string | undefined;
+let ogImageWidth: number | undefined;
+let ogImageHeight: number | undefined;
+const isGeneratedOg = siteConfig.post.generateOgImages && postSlug;
+if (isGeneratedOg) {
+	ogImageUrl = new URL(`/og/${postSlug}.png`, Astro.site).toString();
+	ogImageWidth = 1200;
+	ogImageHeight = 630;
+} else if (postCoverImage) {
+	ogImageUrl = postCoverImage; // 已由文章页算成绝对 URL
+	ogImageWidth = propsOgImageWidth;
+	ogImageHeight = propsOgImageHeight;
+} else if (siteLogo?.url) {
+	ogImageUrl = siteLogo.url;
+	ogImageWidth = siteLogo.width;
+	ogImageHeight = siteLogo.height;
+}
+const ogImageAlt = propsOgImageAlt ?? pageTitle;
+
 // 使用固定的banner偏移量，position配置用于图片定位
-const bannerOffset = `${BANNER_HEIGHT_EXTEND / 2}vh`;
 ---
 
 <!doctype html>
-<html lang={siteLang} class="bg-[var(--page-bg)] text-[14px] md:text-[16px]">
+<html lang={siteLang} class="bg-(--page-bg) text-[14px] md:text-[16px]" data-wallpaper-mode={backgroundWallpaper.mode} data-fullscreen-layout={fullscreenLayout} data-has-wallpaper={hasWallpaper ? "" : undefined} data-tag-style={siteConfig.tagStyle ?? "pill"} data-category-style={siteConfig.categoryStyle ?? "rectangle"}>
   <head>
-      {siteConfig.analytics?.googleAnalyticsId && (
-              <GoogleAnalytics analyticsId={siteConfig.analytics.googleAnalyticsId} />
-      )}
-      {siteConfig.analytics?.microsoftClarityId && (
-              <MicrosoftClarity clarityId={siteConfig.analytics.microsoftClarityId} />
-      )}
+    <meta charset="UTF-8" />
+    <style is:inline>
+			@layer properties, theme, base, components, utilities;
+		</style>
+    {analyticsConfig?.googleAnalyticsId && (
+            <GoogleAnalytics analyticsId={analyticsConfig.googleAnalyticsId} />
+    )}
+    {analyticsConfig?.microsoftClarityId && (
+            <MicrosoftClarity clarityId={analyticsConfig.microsoftClarityId} />
+    )}
+        {analyticsConfig?.umamiAnalytics?.websiteId && (
+          <UmamiAnalytics
+          websiteId={analyticsConfig.umamiAnalytics.websiteId}
+          scriptUrl={analyticsConfig.umamiAnalytics.scriptUrl}
+          replaysScriptUrl={analyticsConfig.umamiAnalytics.replaysScriptUrl}
+          trackOutboundLinks={analyticsConfig.umamiAnalytics.trackOutboundLinks}
+          collectWebVitals={analyticsConfig.umamiAnalytics.collectWebVitals}
+          replays={analyticsConfig.umamiAnalytics.replays}
+          />
+        )}
+        {analyticsConfig?.la51Analytics?.Id && (
+            <La51Analytics
+            analyticsId={analyticsConfig.la51Analytics.Id}
+            sdkUrl={analyticsConfig.la51Analytics?.sdkUrl}
+            ck={analyticsConfig.la51Analytics?.ck}
+            autoTrack={analyticsConfig.la51Analytics?.autoTrack}
+            hashMode={analyticsConfig.la51Analytics?.hashMode}
+            screenRecord={analyticsConfig.la51Analytics?.screenRecord}
+            />
+    )}
 
     <title>{pageTitle}</title>
-
-    <meta charset="UTF-8" />
     <meta
       name="description"
       content={description || siteConfig.description || pageTitle}
@@ -117,14 +198,21 @@ const bannerOffset = `${BANNER_HEIGHT_EXTEND / 2}vh`;
     }
     <meta name="author" content={profileConfig.name} />
 
+    <link rel="canonical" href={canonicalUrl} />
     <meta property="og:site_name" content={siteConfig.title} />
-    <meta property="og:url" content={Astro.url} />
+    <meta property="og:locale" content={getOgLocale(lang)} />
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={pageTitle} />
     <meta
       property="og:description"
       content={description || siteConfig.description || pageTitle}
     />
     {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+    {ogImageUrl && ogImageWidth && <meta property="og:image:width" content={String(ogImageWidth)} />}
+    {ogImageUrl && ogImageHeight && <meta property="og:image:height" content={String(ogImageHeight)} />}
+    {ogImageUrl && <meta property="og:image:alt" content={ogImageAlt} />}
+    {ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}
+    {ogImageUrl && <meta name="twitter:image:alt" content={ogImageAlt} />}
     {
       setOGTypeArticle ? (
         <meta property="og:type" content="article" />
@@ -134,15 +222,36 @@ const bannerOffset = `${BANNER_HEIGHT_EXTEND / 2}vh`;
     }
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={Astro.url} />
+    <meta name="twitter:url" content={canonicalUrl} />
     <meta name="twitter:title" content={pageTitle} />
     <meta
       name="twitter:description"
       content={description || siteConfig.description || pageTitle}
     />
 
-    <meta name="viewport" content="width=device-width" />
+    {
+      isHomePageCheck && (
+        <script
+          is:inline
+          type="application/ld+json"
+          set:html={JSON.stringify(
+            buildSiteGraph({
+              site: siteConfig.site_url,
+              siteConfig,
+              profileConfig,
+              lang: siteLang,
+              authorUrl: aboutUrl,
+              avatarUrl,
+              logo: siteLogo,
+            }),
+          )}
+        />
+      )
+    }
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content={`hsl(${siteConfig.themeColor.hue} 90% 60%)`} />
     {
       favicons.map((favicon) => (
         <link
@@ -153,21 +262,98 @@ const bannerOffset = `${BANNER_HEIGHT_EXTEND / 2}vh`;
         />
       ))
     }
+    {appleTouchIcon && (
+      <link
+        rel="apple-touch-icon"
+        href={appleTouchIcon.src.startsWith("/") ? url(appleTouchIcon.src) : appleTouchIcon.src}
+        type="image/png"
+        sizes={appleTouchIcon.sizes}
+      />
+    )}
+
+    <!-- 为特定域名的图片添加 referrerpolicy 以解决 403 问题 -->
+    <!-- 注：静态图片（ImageWrapper 组件、Markdown 正文图）已在构建期加好 referrerpolicy；
+         此脚本仅作为运行时兜底，处理动态注入的图片（解密内容、第三方评论/统计部件等）。 -->
+    {siteConfig.imageOptimization?.noReferrerDomains &&
+     siteConfig.imageOptimization.noReferrerDomains.length > 0 && (
+      <script
+        is:inline
+        define:vars={{
+          noReferrerDomains: JSON.stringify(
+            siteConfig.imageOptimization.noReferrerDomains
+          ),
+        }}
+      >
+        (function() {
+          const domains = JSON.parse(noReferrerDomains);
+
+          // 域名匹配函数，支持通配符
+          function matchesDomain(urlStr, patterns) {
+            try {
+              const urlObj = new URL(urlStr);
+              const hostname = urlObj.hostname;
+
+              return patterns.some(function(pattern) {
+                const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+                const regex = new RegExp('^' + regexPattern + '$');
+                return regex.test(hostname);
+              });
+            } catch (e) {
+              return false;
+            }
+          }
+
+          // 处理单个图片元素
+          function processImage(img) {
+            if (!img.src || img.hasAttribute('referrerpolicy')) return;
+
+            if (matchesDomain(img.src, domains)) {
+              img.setAttribute('referrerpolicy', 'no-referrer');
+            }
+          }
+
+          // 兜底扫描一次当前页面（构建期已处理的图片会因已有属性而快速跳过）
+          document.querySelectorAll('img').forEach(processImage);
+
+          // 使用 MutationObserver 监听动态加载/注入的图片
+          const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              mutation.addedNodes.forEach(function(node) {
+                if (node.nodeName === 'IMG') {
+                  processImage(node);
+                }
+                if (node.querySelectorAll) {
+                  node.querySelectorAll('img').forEach(processImage);
+                }
+              });
+            });
+          });
+
+          observer.observe(document.documentElement, {
+            childList: true,
+            subtree: true
+          });
+        })();
+      </script>
+    )}
 
     <!-- Set the theme before the page is rendered to avoid a flash -->
     <script
       is:inline
       define:vars={{
-        BANNER_HEIGHT_EXTEND,
         PAGE_WIDTH,
         configHue,
         defaultMode: siteConfig.themeColor.defaultMode ?? "light",
         defaultWallpaperMode: backgroundWallpaper.mode,
         isWallpaperSwitchable:
-          backgroundWallpaper.switchable ?? true,
+          displaySettingsConfig.wallpaperModeSwitchable,
+        isFullscreenLayoutSwitchable:
+          displaySettingsConfig.fullscreenLayoutSwitchable,
         darkTheme: expressiveCodeConfig.darkTheme,
         lightTheme: expressiveCodeConfig.lightTheme,
         baseUrl: import.meta.env.BASE_URL,
+        cardTransparentOpacity: backgroundWallpaper.overlay?.cardOpacity ?? 0.6,
+        fullscreenLayout,
       }}
     >
       // 主题初始化 - 与setting-utils.ts保持一致
@@ -213,46 +399,33 @@ const bannerOffset = `${BANNER_HEIGHT_EXTEND / 2}vh`;
       const hue = localStorage.getItem("hue") || configHue;
       document.documentElement.style.setProperty("--hue", hue);
 
-      // calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text
-      // 使用更准确的窗口高度计算
-      function calculateBannerHeightExtend() {
-        let offset = Math.floor(
-          window.innerHeight * (BANNER_HEIGHT_EXTEND / 100)
-        );
-        offset = offset - (offset % 4);
-        document.documentElement.style.setProperty(
-          "--banner-height-extend",
-          `${offset}px`
-        );
+      // 设置卡片透明度（全屏透明模式下使用），优先使用用户自定义值
+      const storedCardOpacity = localStorage.getItem("overlayCardOpacity");
+      const parsedCardOpacity = storedCardOpacity === null ? NaN : Number.parseFloat(storedCardOpacity);
+      const resolvedCardOpacity = Number.isFinite(parsedCardOpacity)
+        ? Math.min(1, Math.max(0, parsedCardOpacity))
+        : cardTransparentOpacity;
+      document.documentElement.style.setProperty("--card-transparent-opacity", String(resolvedCardOpacity));
+
+      // 仅在允许切换时使用设置面板保存的运行时选择；否则配置值始终生效
+      const storedFullscreenLayout = isFullscreenLayoutSwitchable
+        ? localStorage.getItem("fullscreenLayout")
+        : null;
+      if (!isFullscreenLayoutSwitchable) {
+        localStorage.removeItem("fullscreenLayout");
       }
+      const resolvedFullscreenLayout =
+        storedFullscreenLayout === "hero" || storedFullscreenLayout === "classic"
+          ? storedFullscreenLayout
+          : fullscreenLayout;
+      document.documentElement.setAttribute(
+        "data-fullscreen-layout",
+        resolvedFullscreenLayout,
+      );
 
-      // 立即设置初始值
-      calculateBannerHeightExtend();
+      // 内容定位已由 --content-top 纯 CSS 决定（layout-base.css），无需 --banner-height-extend 变量/计算
 
-      // 在下一帧重新计算精确值（仅在值变化时更新，避免闪烁）
-      requestAnimationFrame(() => {
-        const oldValue = parseInt(
-          document.documentElement.style.getPropertyValue(
-            "--banner-height-extend"
-          )
-        );
-        calculateBannerHeightExtend();
-        const newValue = parseInt(
-          document.documentElement.style.getPropertyValue(
-            "--banner-height-extend"
-          )
-        );
-        // 如果值变化了，再更新一次确保准确
-        if (Math.abs(oldValue - newValue) > 4) {
-          // 如果有明显变化，延迟一帧再更新，避免闪烁
-          requestAnimationFrame(calculateBannerHeightExtend);
-        }
-      });
-
-      // 初始化壁纸模式 - 在页面渲染前应用
-      const WALLPAPER_BANNER = "banner";
-      const WALLPAPER_OVERLAY = "overlay";
-      const WALLPAPER_NONE = "none";
+      // 初始化壁纸模式 - 在页面渲染前同步应用（其余布局由 CSS 属性选择器接管）
       const wallpaperMode = isWallpaperSwitchable
         ? localStorage.getItem("wallpaperMode") || defaultWallpaperMode
         : defaultWallpaperMode;
@@ -263,141 +436,52 @@ const bannerOffset = `${BANNER_HEIGHT_EXTEND / 2}vh`;
         wallpaperMode
       );
 
-      // 立即执行函数来处理DOM
-      (function applyWallpaperMode() {
-        // 使用 requestAnimationFrame 确保在下一帧之前执行
-        requestAnimationFrame(function () {
-          // 根据模式隐藏显示对应元素
-          if (
-            wallpaperMode === WALLPAPER_NONE ||
-            wallpaperMode === WALLPAPER_OVERLAY
-          ) {
-            // 隐藏横幅
-            if (document.body) {
-              document.body.classList.remove("enable-banner");
-              document.body.classList.add("no-banner-layout");
-            }
-          } else {
-            if (document.body) {
-              document.body.classList.add("enable-banner");
-              document.body.classList.remove("no-banner-layout");
-            }
-          }
+      // 初始化期间禁用 content-panel/wrapper 过渡，避免加载时布局/变量变化产生内容移动动画；
+      // load 后移除（仅首次设置，swup 切页重跑脚本时不再重复）。布局已由 CSS 接管，无需 rAF 校正
+      if (!window.__fireflyLayoutTransitionGuard) {
+        window.__fireflyLayoutTransitionGuard = true;
+        document.documentElement.setAttribute("data-layout-init", "");
+        const removeLayoutInit = () =>
+          document.documentElement.removeAttribute("data-layout-init");
+        if (document.readyState === "complete") {
+          requestAnimationFrame(removeLayoutInit);
+        } else {
+          window.addEventListener("load", removeLayoutInit, { once: true });
+        }
+      }
 
-          // 全屏壁纸模式
-          if (wallpaperMode === WALLPAPER_OVERLAY) {
-            if (document.body) {
-              document.body.classList.add("wallpaper-transparent");
-            }
-          } else {
-            if (document.body) {
-              document.body.classList.remove("wallpaper-transparent");
-            }
-          }
+      // 初始化水波纹动画状态 - 在 html 元素上设置属性，CSS 会立即生效
+      (function applyWavesEnabled() {
+        const wavesEnabled = localStorage.getItem("wavesEnabled");
+        if (wavesEnabled !== null) {
+          document.documentElement.setAttribute("data-waves-enabled", wavesEnabled);
+        }
+      })();
 
-          // 处理banner和overlay wallpaper的显示
-          const bannerWrapper = document.getElementById("banner-wrapper");
-          const overlayWallpaper = document.querySelector(
-            "[data-overlay-wallpaper]"
-          );
+      // 初始化渐变过渡状态 - 在 html 元素上设置属性，CSS 会立即生效
+      (function applyGradientEnabled() {
+        const gradientEnabled = localStorage.getItem("gradientEnabled");
+        if (gradientEnabled !== null) {
+          document.documentElement.setAttribute("data-gradient-enabled", gradientEnabled);
+        }
+      })();
 
-          // 检查当前是否为首页
-          const isHomePage =
-            window.location.pathname === baseUrl || 
-            (baseUrl !== '/' && window.location.pathname === baseUrl.replace(/\/$/, '')) ||
-            window.location.pathname === "/";
-
-          if (wallpaperMode === WALLPAPER_OVERLAY) {
-            // 全屏壁纸透明模式：显示全屏壁纸，隐藏banner
-            if (bannerWrapper) {
-              bannerWrapper.style.display = "none";
-            }
-            if (overlayWallpaper) {
-              overlayWallpaper.style.display = "block";
-              overlayWallpaper.classList.remove("hidden", "opacity-0");
-              overlayWallpaper.classList.add("opacity-100");
-            }
-          } else if (wallpaperMode === WALLPAPER_NONE) {
-            // 纯色背景：隐藏所有壁纸
-            if (bannerWrapper) {
-              bannerWrapper.style.display = "none";
-            }
-            if (overlayWallpaper) {
-              overlayWallpaper.style.display = "none";
-              overlayWallpaper.classList.add("hidden", "opacity-0");
-            }
-          } else {
-            // banner模式：显示banner，隐藏全屏壁纸
-            if (bannerWrapper) {
-              const isMobile = window.innerWidth < 1024;
-              // 移动端非首页时隐藏banner（初始状态直接隐藏，不需要动画）
-              // 桌面端始终显示banner
-              if (isMobile && !isHomePage) {
-                bannerWrapper.style.display = "none";
-                bannerWrapper.classList.add("mobile-hide-banner");
-              } else {
-                bannerWrapper.style.display = "block";
-                bannerWrapper.classList.remove("mobile-hide-banner");
-              }
-            }
-            if (overlayWallpaper) {
-              overlayWallpaper.style.display = "none";
-              overlayWallpaper.classList.add("hidden", "opacity-0");
-            }
-          }
-
-          // 处理主内容区域位置
-          const mainContentWrapper = document.querySelector(
-            ".absolute.w-full.z-30"
-          );
-          if (mainContentWrapper) {
-            const isMobile = window.innerWidth < 1024;
-            // 只在移动端非首页时调整主内容位置
-            if (isMobile && !isHomePage) {
-              mainContentWrapper.classList.add("mobile-main-no-banner");
-            } else {
-              mainContentWrapper.classList.remove("mobile-main-no-banner");
-            }
-          }
-
-          // 处理credit元素
-          const creditDesktop = document.getElementById(
-            "banner-credit-desktop"
-          );
-          const creditMobile = document.getElementById("banner-credit-mobile");
-          if (
-            wallpaperMode === WALLPAPER_OVERLAY ||
-            wallpaperMode === WALLPAPER_NONE
-          ) {
-            if (creditDesktop) creditDesktop.style.display = "none";
-            if (creditMobile) creditMobile.style.display = "none";
-          } else {
-            if (creditDesktop) creditDesktop.style.display = "";
-            if (creditMobile) creditMobile.style.display = "";
-          }
-
-          // 处理banner homeText元素
-          const bannerTextOverlay = document.querySelector(
-            ".banner-text-overlay"
-          );
-          if (bannerTextOverlay) {
-            const isHomePage =
-              window.location.pathname === baseUrl || 
-              (baseUrl !== '/' && window.location.pathname === baseUrl.replace(/\/$/, '')) ||
-              window.location.pathname === "/";
-            if (wallpaperMode === WALLPAPER_BANNER && isHomePage) {
-              bannerTextOverlay.classList.remove("hidden");
-            } else {
-              bannerTextOverlay.classList.add("hidden");
-            }
-          }
-        });
+      // 初始化横幅标题显示状态 - 在 html 元素上设置属性，CSS 会立即生效
+      (function applyBannerTitleEnabled() {
+        const bannerTitleEnabled = localStorage.getItem("bannerTitleEnabled");
+        if (bannerTitleEnabled !== null) {
+          document.documentElement.setAttribute("data-banner-title-enabled", bannerTitleEnabled);
+        }
       })();
     </script>
     <style
       define:vars={{
         configHue,
-        "page-width": `${PAGE_WIDTH}rem`,
+        "page-width": `${siteConfig.pageWidth ?? PAGE_WIDTH}rem`,
+        "navbar-panel-blur": `${navbarPanelBlur}px`,
+        "banner-height-home": `${BANNER_HEIGHT_HOME}vh`,
+        "banner-height-non-home": `max(${BANNER_HEIGHT_NON_HOME}vh, ${BANNER_HEIGHT_NON_HOME_MIN}px)`,
+        "banner-height": `${BANNER_HEIGHT}vh`,
       }}
     ></style>
     <!-- defines global css variables. This will be applied to <html> <body> and some other elements idk why -->
@@ -411,662 +495,117 @@ const bannerOffset = `${BANNER_HEIGHT_EXTEND / 2}vh`;
       href={`${Astro.site}rss.xml`}
     />
 
-    <!-- Font Manager -->
-    <FontManager />
-    
-    <!-- Iconify Loader -->
-    <IconifyLoader />
+    <link
+      rel="alternate"
+      type="application/atom+xml"
+      title={profileConfig.name}
+      href={`${Astro.site}atom.xml`}
+    />
+
+    <!-- Font Setup (Astro Font API) -->
+    <FontSetup />
   </head>
   <body
     class="min-h-screen"
     class:list={[
-      { "lg:is-home": isHomePageCheck, "enable-banner": enableBanner },
-      ...(siteConfig.font.enable && siteConfig.font.selected
-        ? (Array.isArray(siteConfig.font.selected)
-            ? siteConfig.font.selected
-            : [siteConfig.font.selected]
-          ).map((fontId) => `font-${fontId}-enabled`)
-        : []),
+      {
+        "is-home": isHomePageCheck,
+        "sticky-navbar": navbarMode === "fixed",
+        "dynamic-navbar": navbarMode === "dynamic",
+      },
     ]}
   >
+    <!-- 首帧前按运行时壁纸模式翻转卡片透明类（布局已由 data-wallpaper-mode 属性规则接管） -->
+    <script is:inline>
+      (function () {
+        const wm = document.documentElement.getAttribute("data-wallpaper-mode");
+        if (!wm) return;
+        document.body.classList.toggle(
+          "wallpaper-transparent",
+          wm === "overlay" ||
+            (wm === "fullscreen" &&
+              document.documentElement.getAttribute("data-fullscreen-layout") === "hero"),
+        );
+      })();
+    </script>
+
+    <div id="progress-bar"></div>
+
+    {/* 卡片样式：根据 localStorage 覆盖默认配置 */}
+    <script is:inline define:vars={{
+      defaultBorder: siteConfig.card?.border ?? false,
+      defaultFollowTheme: siteConfig.card?.followTheme ?? false,
+    }}>
+      (function() {
+        var stored = localStorage.getItem("cardBorderEnabled");
+        var border = stored !== null ? stored === "true" : defaultBorder;
+        if (border) document.documentElement.classList.add("enable-card-border");
+        else document.documentElement.classList.remove("enable-card-border");
+
+        stored = localStorage.getItem("cardFollowThemeEnabled");
+        var follow = stored !== null ? stored === "true" : defaultFollowTheme;
+        if (follow) document.body.classList.add("card-follow-theme-hue");
+        else document.body.classList.remove("card-follow-theme-hue");
+      })();
+    </script>
 
     <!-- 页面顶部渐变高光效果 - 只在full和semifull模式下显示 -->
     {shouldShowTopHighlight && <div class="top-gradient-highlight" />}
     <ConfigCarrier />
+    <MusicManager />
     <slot />
 
-    <!-- Music Player -->
-    <MusicPlayer />
+    <!-- 播放器视图脚本：必须在 <slot /> 之后（解析到它时所有 widget 的 DOM 要已存在），
+         且在 MusicManager 之后（swup 重跑按文档顺序，window.__fireflyMusic 得先就位） -->
+    {(musicPlayerConfig.showInNavbar || musicPlayerConfig.showInSidebar !== false) && (
+      <MusicPlayerView />
+    )}
 
-    <!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
-    <div id="page-height-extend" class="hidden h-[300vh]"></div>
 
     <!-- Sakura Effect -->
     <SakuraEffect />
 
+    <!-- Water Waves Effect -->
+    <WavesEffect />
+
     <!-- Fancybox Manager -->
     <FancyboxManager />
-    
-    <!-- KaTeX Manager -->
-    <KatexManager />
+
+    <!-- Tab 代码块交互 -->
+    <CodeGroupManager />
+
+    <!-- GitHub 卡片客户端实时补全（forks/stars） -->
+    <GithubCardManager />
   </body>
 </html>
 
-<style
-  is:global
-  define:vars={{
-    bannerOffset,
-    "banner-height-home": `${BANNER_HEIGHT_HOME}vh`,
-    "banner-height": `${BANNER_HEIGHT}vh`,
-  }}
->
-  @tailwind components;
-  @layer components {
-    .enable-banner.is-home #banner-wrapper {
-      @apply h-[var(--banner-height-home)] translate-y-[var(--banner-height-extend)];
-    }
-    .enable-banner #banner-wrapper {
-      @apply h-[var(--banner-height-home)];
-    }
-
-    .enable-banner.is-home #banner {
-      @apply h-[var(--banner-height-home)] translate-y-0;
-    }
-    .enable-banner #banner {
-      @apply h-[var(--banner-height-home)] translate-y-[var(--bannerOffset)];
-    }
-    .enable-banner.is-home #main-grid {
-      @apply translate-y-[var(--banner-height-extend)];
-    }
-    .enable-banner #top-row {
-      @apply h-[calc(var(--banner-height-home)_-_4.5rem)] transition-all duration-300;
-    }
-    .enable-banner.is-home #sidebar-sticky {
-      @apply top-[calc(1rem_-_var(--banner-height-extend))];
-    }
-    .enable-banner.is-home #left-sidebar-sticky {
-      @apply top-[calc(1rem_-_var(--banner-height-extend))];
-    }
-    .enable-banner.is-home #right-sidebar-sticky {
-      @apply top-[calc(1rem_-_var(--banner-height-extend))];
-    }
-    .navbar-hidden {
-      @apply opacity-0 -translate-y-16;
-    }
-  }
-</style>
 
 <script>
-  import { pathsEqual, url } from "@/utils/url-utils";
-  import {
-    BANNER_HEIGHT,
-    BANNER_HEIGHT_HOME,
-    BANNER_HEIGHT_EXTEND,
-    // MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
-  } from "@/constants/constants";
-  import { backgroundWallpaper, expressiveCodeConfig, siteConfig } from "@/config";
+  import { initLayout } from "@/utils/layout-init";
+  initLayout();
+</script>
 
-  /* Preload fonts */
-  // (async function() {
-  // 	try {
-  // 		await Promise.all([
-  // 			document.fonts.load("400 1em Roboto"),
-  // 			document.fonts.load("700 1em Roboto"),
-  // 		]);
-  // 		document.body.classList.remove("hidden");
-  // 	} catch (error) {
-  // 		console.log("Failed to load fonts:", error);
-  // 	}
-  // })();
-
-  /* TODO This is a temporary solution for style flicker issue when the transition is activated */
-  /* issue link: https://github.com/withastro/astro/issues/8711, the solution get from here too */
-  /* update: fixed in Astro 3.2.4 */
-  /*
-function disableAnimation() {
-	const css = document.createElement('style')
-	css.appendChild(
-		document.createTextNode(
-			`*{
-              -webkit-transition:none!important;
-              -moz-transition:none!important;
-              -o-transition:none!important;
-              -ms-transition:none!important;
-              transition:none!important
-              }`
-		)
-	)
-	document.head.appendChild(css)
-
-	return () => {
-		// Force restyle
-		;(() => window.getComputedStyle(document.body))()
-
-		// Wait for next tick before removing
-		setTimeout(() => {
-			document.head.removeChild(css)
-		}, 1)
-	}
-}
-*/
-
-  const bannerEnabled = !!document.getElementById("banner-wrapper");
-
-  function setClickOutsideToClose(panel: string, ignores: string[]) {
-      document.addEventListener("click", (event) => {
-          let panelDom = document.getElementById(panel);
-          if (!panelDom) return;
-          let tDom = event.target;
-          if (!(tDom instanceof Node)) return; // Ensure the event target is an HTML Node
-          for (let ig of ignores) {
-              let ie = document.getElementById(ig);
-              if (ie == tDom || ie?.contains(tDom)) {
-                  return;
-              }
-          }
-          panelDom.classList.add("float-panel-closed");
-      });
+<script>
+  let originalTitle = document.title;
+  let titleTimer: number | undefined;
+  function restoreTitle() {
+    window.clearTimeout(titleTimer);
+    document.title = originalTitle;
   }
-  setClickOutsideToClose("display-setting", [
-    "display-setting",
-    "display-settings-switch",
-  ]);
-  setClickOutsideToClose("nav-menu-panel", [
-    "nav-menu-panel",
-    "nav-menu-switch",
-  ]);
-  setClickOutsideToClose("search-panel", [
-    "search-panel",
-    "search-bar",
-    "search-switch",
-  ]);
-  setClickOutsideToClose("wallpaper-mode-panel", [
-    "wallpaper-mode-panel",
-    "wallpaper-mode-switch",
-  ]);
-  setClickOutsideToClose("theme-mode-panel", [
-    "theme-mode-panel",
-    "scheme-switch",
-  ]);
-
-  function initCustomScrollbar() {
-    // 只处理katex元素的滚动条，使用浏览器原生滚动条
-    const katexElements = document.querySelectorAll(
-      ".katex-display:not([data-scrollbar-initialized])"
-    ) as NodeListOf<HTMLElement>;
-    katexElements.forEach((element) => {
-      if (!element.parentNode) return;
-
-      const container = document.createElement("div");
-      container.className = "katex-display-container";
-      element.parentNode.insertBefore(container, element);
-      container.appendChild(element);
-
-      // 使用浏览器原生滚动条，无自定义样式
-      container.style.cssText = `
-			overflow-x: auto;
-		`;
-
-      element.setAttribute("data-scrollbar-initialized", "true");
-    });
-  }
-
-  function showBanner() {
-    const isBannerMode = backgroundWallpaper.mode === "banner";
-    if (!isBannerMode) return;
-
-    // 使用requestAnimationFrame优化DOM操作
-    requestAnimationFrame(() => {
-      // Handle single image banner (desktop)
-      const banner = document.getElementById("banner");
-      if (banner) {
-        banner.classList.remove("opacity-0", "scale-105");
-      }
-
-      // Handle mobile single image banner - 使用与电脑端相同的逻辑
-      const mobileBanner = document.querySelector(
-        '.block.lg\\:hidden[alt="Mobile banner image of the blog"]'
-      );
-      if (mobileBanner) {
-        // 移动端使用与电脑端相同的初始化逻辑
-        mobileBanner.classList.remove("opacity-0", "scale-105");
-        mobileBanner.classList.add("opacity-100");
-      }
-    });
-  }
-
-  const setup = () => {
-    // TODO: temp solution to change the height of the banner
-    /*
-	window.swup.hooks.on('animation:out:start', () => {
-		const path = window.location.pathname
-		const body = document.querySelector('body')
-		if (path[path.length - 1] === '/' && !body.classList.contains('is-home')) {
-			body.classList.add('is-home')
-		} else if (path[path.length - 1] !== '/' && body.classList.contains('is-home')) {
-			body.classList.remove('is-home')
-		}
-	})
-*/
-    window.swup.hooks.on("link:click", () => {
-      // Remove the delay for the first time page load
-      document.documentElement.style.setProperty("--content-delay", "0ms");
-
-      // 添加页面切换保护，防止导航栏闪烁
-      document.documentElement.classList.add("is-page-transitioning");
-
-      // 简化navbar处理逻辑
-      if (bannerEnabled) {
-        const navbar = document.getElementById("navbar-wrapper");
-        if (navbar && document.body.classList.contains("lg:is-home")) {
-          const threshold = window.innerHeight * (BANNER_HEIGHT / 100) - 88;
-          if (document.documentElement.scrollTop >= threshold) {
-            navbar.classList.add("navbar-hidden");
-          }
-        }
-      }
-    });
-    window.swup.hooks.on("content:replace", () => {
-      // 更新主网格布局类名
-      const gridClassCarrier = document.getElementById("grid-class-carrier");
-      if (gridClassCarrier) {
-        const gridClass = gridClassCarrier.getAttribute("data-grid-class");
-        const mainGrid = document.getElementById("main-grid");
-        if (mainGrid && gridClass) {
-
-          const currentClasses = mainGrid.className.split(" ");
-          const newClasses = currentClasses.filter(c => !c.startsWith("lg:grid-cols-") && !c.startsWith("md:grid-cols-") && !c.startsWith("grid-cols-"));
-          
-          // 添加新的网格类
-          const gridClasses = gridClass.split(" ");
-          mainGrid.className = [...newClasses, ...gridClasses].join(" ");
-        }
-      }
-
-      // 只处理katex元素的容器，使用浏览器原生滚动条
-      initCustomScrollbar();
-      
-      // 重新初始化图标加载器
-      import("@/utils/icon-loader").then(({ initIconLoader }) => {
-        initIconLoader();
-      });
-
-      // 检查当前页面是否为文章页面（有TOC元素）
-      const tocWrapper = document.getElementById("toc-wrapper");
-      const isArticlePage = tocWrapper !== null;
-
-      // 只在文章页面重新初始化桌面端 TOC 组件
-      if (isArticlePage) {
-        const tocElement = document.querySelector("table-of-contents");
-        if (tocElement && typeof (tocElement as any).init === "function") {
-          setTimeout(() => {
-            (tocElement as any).init();
-          }, 100);
-        }
-      }
-
-      // 重新初始化semifull模式的滚动检测
-      const navbar = document.getElementById("navbar");
-      if (navbar) {
-        const transparentMode = navbar.getAttribute("data-transparent-mode");
-
-        if (transparentMode === "semifull") {
-          // 重新调用初始化函数来重新绑定滚动事件
-          if (
-            typeof (window as any).initSemifullScrollDetection === "function"
-          ) {
-            (window as any).initSemifullScrollDetection();
-          }
-        }
-      }
-
-    });
-    window.swup.hooks.on("visit:start", (visit: { to: { url: string } }) => {
-      // change banner height immediately when a link is clicked
-      const bodyElement = document.querySelector("body");
-      const isHomePage = pathsEqual(visit.to.url, url("/"));
-
-      if (isHomePage) {
-        bodyElement!.classList.add("lg:is-home");
-      } else {
-        bodyElement!.classList.remove("lg:is-home");
-      }
-
-      // Control banner text visibility based on page
-      const bannerTextOverlay = document.querySelector(".banner-text-overlay");
-      if (bannerTextOverlay) {
-        if (isHomePage) {
-          bannerTextOverlay.classList.remove("hidden");
-        } else {
-          bannerTextOverlay.classList.add("hidden");
-        }
-      }
-
-      // Control navbar transparency based on page
-      const navbar = document.getElementById("navbar");
-      if (navbar) {
-        navbar.setAttribute("data-is-home", isHomePage.toString());
-
-        // 重新初始化semifull模式的滚动检测
-        const transparentMode = navbar.getAttribute("data-transparent-mode");
-        if (transparentMode === "semifull") {
-          // 重新调用初始化函数来重新绑定滚动事件
-          if (
-            typeof (window as any).initSemifullScrollDetection === "function"
-          ) {
-            (window as any).initSemifullScrollDetection();
-          }
-        }
-      }
-
-      // Control mobile banner visibility based on page with improved staging animation
-      // 只在移动端（1024px以下）处理banner隐藏
-      const isMobile = window.innerWidth < 1024;
-      
-      // 在移动端禁用文章列表容器的过渡动画，防止与主内容区位置变化冲突
-      if (isMobile) {
-        const postListContainer = document.getElementById("post-list-container");
-        if (postListContainer) {
-          postListContainer.style.transition = "none";
-        }
-      }
-
-      const bannerWrapper = document.getElementById("banner-wrapper");
-      const mainContentWrapper = document.querySelector(
-        ".absolute.w-full.z-30"
-      ) as HTMLElement | null;
-
-      if (isMobile && bannerWrapper && mainContentWrapper) {
-        if (isHomePage) {
-          // 首页：禁用主内容区域的过渡动画，防止文章列表下移
-          mainContentWrapper.style.transition = "none";
-          
-          // 先显示banner，然后移除隐藏类让其优雅出现
-          bannerWrapper.style.display = "";
-          setTimeout(() => {
-            bannerWrapper.classList.remove("mobile-hide-banner");
-          }, 100);
-          setTimeout(() => {
-            mainContentWrapper.classList.remove("mobile-main-no-banner");
-            // 在移除类之后立即恢复过渡动画（下次导航时使用）
-            setTimeout(() => {
-              mainContentWrapper.style.transition = "";
-            }, 50);
-          }, 150);
-        } else {
-          // 非首页：分阶段隐藏，先隐藏banner，再移动内容
-          bannerWrapper.classList.add("mobile-hide-banner");
-          // 延迟移动内容，让banner先完全消失
-          setTimeout(() => {
-            mainContentWrapper.classList.add("mobile-main-no-banner");
-          }, 100);
-        }
-      } else if (!isMobile && bannerWrapper) {
-        // 桌面端：确保banner正常显示
-        bannerWrapper.style.display = "";
-        bannerWrapper.classList.remove("mobile-hide-banner");
-        if (mainContentWrapper) {
-          mainContentWrapper.classList.remove("mobile-main-no-banner");
-        }
-      }
-
-      // increase the page height during page transition to prevent the scrolling animation from jumping
-      const heightExtend = document.getElementById("page-height-extend");
-      if (heightExtend) {
-        heightExtend.classList.remove("hidden");
-      }
-
-      // Hide the TOC while scrolling back to top
-      let toc = document.getElementById("toc-wrapper");
-      if (toc) {
-        toc.classList.add("toc-not-ready");
-      }
-    });
-    window.swup.hooks.on("page:view", () => {
-      // hide the temp high element when the transition is done
-      const heightExtend = document.getElementById("page-height-extend");
-      if (heightExtend) {
-        heightExtend.classList.remove("hidden");
-      }
-
-      // 确保页面滚动到顶部，使用平滑滚动避免侧边栏闪烁
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-
-      // 在移动端恢复文章列表容器的过渡动画（在主内容区位置动画完成后）
-      const isMobile = window.innerWidth < 1024;
-      if (isMobile) {
-        setTimeout(() => {
-          const postListContainer = document.getElementById("post-list-container");
-          if (postListContainer) {
-            postListContainer.style.transition = "";
-          }
-        }, 600); // 等待主内容区动画完成（0.4s + 0.1s delay + 100ms buffer）
-      }
-
-      // 同步主题状态 - 解决从首页进入文章页面时代码块渲染问题
-      const storedTheme = localStorage.getItem("theme") || siteConfig.themeColor.defaultMode || "light";
-      let isDark = false;
-      
-      // 处理 system 模式
-      if (storedTheme === "system") {
-        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      } else {
-        isDark = storedTheme === "dark";
-      }
-      
-      const expectedTheme = isDark
-        ? expressiveCodeConfig.darkTheme
-        : expressiveCodeConfig.lightTheme;
-      const currentTheme = document.documentElement.getAttribute("data-theme");
-
-      // 如果主题不匹配，静默更新（不触发事件，避免重新加载效果）
-      if (currentTheme !== expectedTheme) {
-        document.documentElement.setAttribute("data-theme", expectedTheme);
-      }
-
-      // 检查当前页面是否为文章页面，如果是则触发自定义事件用于初始化评论系统
-      setTimeout(() => {
-        if (document.getElementById("tcomment")) {
-          // 触发自定义事件，通知评论系统页面已完全加载
-          const pageLoadedEvent = new CustomEvent("firefly:page:loaded", {
-            detail: {
-              path: window.location.pathname,
-              timestamp: Date.now(),
-            },
-          });
-          document.dispatchEvent(pageLoadedEvent);
-          console.log(
-            "Layout: 触发 firefly:page:loaded 事件，路径:",
-            window.location.pathname
-          );
-        }
-      }, 300);
-    });
-    window.swup.hooks.on("visit:end", (_visit: { to: { url: string } }) => {
-      setTimeout(() => {
-        const heightExtend = document.getElementById("page-height-extend");
-        if (heightExtend) {
-          heightExtend.classList.add("hidden");
-        }
-
-        // Just make the transition looks better
-        const toc = document.getElementById("toc-wrapper");
-        if (toc) {
-          toc.classList.remove("toc-not-ready");
-        }
-
-        // 移除页面切换保护，恢复过渡动画
-        document.documentElement.classList.remove("is-page-transitioning");
-      }, 200);
-    });
-
-
-  };
-  if (window?.swup?.hooks) {
-    setup();
-  } else {
-    document.addEventListener("swup:enable", setup);
-  }
-
-  let backToTopBtn = document.getElementById("back-to-top-btn");
-  let toc = document.getElementById("toc-wrapper");
-  let navbar = document.getElementById("navbar-wrapper");
-
-  // 优化的滚动处理函数
-  function scrollFunction() {
-    const scrollTop = document.documentElement.scrollTop;
-    const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
-
-    // 使用批量DOM操作优化性能
-    const operations: (() => void)[] = [];
-
-    if (backToTopBtn) {
-      operations.push(() => {
-        if (scrollTop > bannerHeight) {
-          backToTopBtn.classList.remove("hide");
-        } else {
-          backToTopBtn.classList.add("hide");
-        }
-      });
-    }
-
-    if (bannerEnabled && toc) {
-      operations.push(() => {
-        if (scrollTop > bannerHeight) {
-          toc.classList.remove("toc-hide");
-        } else {
-          toc.classList.add("toc-hide");
-        }
-      });
-    }
-
-    if (bannerEnabled && navbar) {
-      operations.push(() => {
-        const isHome =
-          document.body.classList.contains("lg:is-home") &&
-          window.innerWidth >= 1024;
-        const currentBannerHeight = isHome ? BANNER_HEIGHT_HOME : BANNER_HEIGHT;
-        const threshold = window.innerHeight * (currentBannerHeight / 100) - 88;
-
-        if (scrollTop >= threshold) {
-          navbar.classList.add("navbar-hidden");
-        } else {
-          navbar.classList.remove("navbar-hidden");
-        }
-      });
-    }
-
-    // 批量执行DOM操作
-    if (operations.length > 0) {
-      requestAnimationFrame(() => {
-        operations.forEach((op) => op());
-      });
+  function updateDynamicTitle() {
+    window.clearTimeout(titleTimer);
+    if (document.hidden || !document.hasFocus()) {
+      document.title = "(っ °Д °;)っ主人看看机体喵！";
+    } else {
+      document.title = "ヾ(≧▽≦*)o机体最喜欢主人啦！";
+      titleTimer = window.setTimeout(restoreTitle, 2000);
     }
   }
-
-  // 使用优化的滚动性能处理
-  let scrollTimeout: number;
-  window.addEventListener(
-    "scroll",
-    () => {
-      if (scrollTimeout) {
-        cancelAnimationFrame(scrollTimeout);
-      }
-      scrollTimeout = requestAnimationFrame(scrollFunction);
-    },
-    { passive: true }
-  );
-
-  window.onresize = () => {
-    // calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text
-    let offset = Math.floor(window.innerHeight * (BANNER_HEIGHT_EXTEND / 100));
-    offset = offset - (offset % 4);
-    document.documentElement.style.setProperty(
-      "--banner-height-extend",
-      `${offset}px`
-    );
-  };
-
-  // 页面加载完成后初始化banner和katex容器
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      showBanner();
-      initCustomScrollbar();
-    });
-  } else {
-    showBanner();
-    initCustomScrollbar();
-  }
-
-  // Initialize wallpaper mode
-  import { initWallpaperMode, initThemeListener } from "@/utils/setting-utils";
-  import { initIconLoader } from "@/utils/icon-loader";
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      initWallpaperMode();
-      initThemeListener();
-      initIconLoader();
-      initDynamicTitle();
-    });
-  } else {
-    initWallpaperMode();
-    initThemeListener();
-    initIconLoader();
-    initDynamicTitle();
-  }
-
-  // Dynamic title functionality
-  function initDynamicTitle() {
-    const originalTitle = document.title;
-    let titleTimer: number | null = null;
-
-    function resetTitle() {
-      if (titleTimer) {
-        clearTimeout(titleTimer);
-        titleTimer = null;
-      }
-      document.title = originalTitle;
-    }
-
-    function setTitleWithDelay(title: string, delay: number = 2000) {
-      if (titleTimer) {
-        clearTimeout(titleTimer);
-        titleTimer = null;
-      }
-      document.title = title;
-      titleTimer = window.setTimeout(resetTitle, delay);
-    }
-
-    function setTitlePersistent(title: string) {
-      if (titleTimer) {
-        clearTimeout(titleTimer);
-        titleTimer = null;
-      }
-      document.title = title;
-    }
-
-    function handleVisibilityChange() {
-      if (document.hidden) {
-        setTitlePersistent("(っ °Д °;)っ主人看看机体喵！");
-      } else {
-        setTitleWithDelay("ヾ(≧▽≦*)o机体最喜欢主人啦！");
-      }
-    }
-
-    function handleFocus() {
-      setTitleWithDelay("ヾ(≧▽≦*)o机体最喜欢主人啦！");
-    }
-
-    function handleBlur() {
-      setTitlePersistent("(っ °Д °;)っ主人看看机体喵！");
-    }
-
-    // Add event listeners
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
-  }
+  document.addEventListener("visibilitychange", updateDynamicTitle);
+  window.addEventListener("focus", updateDynamicTitle);
+  window.addEventListener("blur", updateDynamicTitle);
+  document.addEventListener("swup:page:view", () => {
+    window.clearTimeout(titleTimer);
+    originalTitle = document.title;
+  });
 </script>

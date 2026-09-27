@@ -1,296 +1,176 @@
-import { sidebarLayoutConfig } from "../config";
-import { widgetManager } from "./widget-manager";
+import { sidebarLayoutConfig } from "@/config";
 
-// 响应式侧边栏配置
-export const getResponsiveSidebarConfig = (isPostPage = false) => {
-	const globalSidebarEnabled = sidebarLayoutConfig.enable;
-	let sidebarPosition = sidebarLayoutConfig.position || "left";
+/** 侧栏列宽，全仓库唯一字面值出处 */
+const SIDEBAR_WIDTH = "17.5rem";
 
-	// 如果配置了在文章详情页显示右侧边栏，且当前是文章详情页，则强制使用双侧边栏模式
-	if (
-		sidebarPosition === "left" &&
-		isPostPage &&
-		sidebarLayoutConfig.showRightSidebarOnPostPage
-	) {
-		sidebarPosition = "both";
-	}
+const SIDEBAR_TRACK = "var(--grid-sidebar-width)";
 
-	const isBothSidebars = sidebarPosition === "both";
+export interface ResponsiveSidebarConfig {
+	/**
+	 * 该侧是否存在启用的组件，含 position 门控。
+	 * 不含页面类型判定：position === "both" 时侧栏走静态容器、只 SSR 一次，
+	 * 按页型收窄会让它永久变空。
+	 */
+	hasLeftComponents: boolean;
+	hasRightComponents: boolean;
+	tabletSidebar: "left" | "right";
+	/** 以下四个只服务于列几何，不含 position 门控 */
+	hasLeftWidgetsOnPost: boolean;
+	hasLeftWidgetsOnNonPost: boolean;
+	hasRightWidgetsOnPost: boolean;
+	hasRightWidgetsOnNonPost: boolean;
+}
+
+/** 组件在给定页面类型下是否显示，与 SideBar.astro 的 widget-hide-* 规则同源 */
+export function isWidgetVisibleOnPageType(
+	comp: {
+		enable: boolean;
+		showOnPostPage?: boolean;
+		hideOnNonPostPage?: boolean;
+	},
+	isPostPage: boolean,
+): boolean {
+	if (!comp.enable) return false;
+	if (isPostPage && comp.showOnPostPage === false) return false;
+	if (!isPostPage && comp.hideOnNonPostPage === true) return false;
+	return true;
+}
+
+/**
+ * 获取响应式侧边栏配置
+ *
+ * 响应式布局：
+ * - 768px及以下: 隐藏侧栏，显示底部 mobileBottomComponents
+ * - 769px-1279px: 根据 position 和 tabletSidebar 配置显示侧栏
+ * - 1280px及以上: 根据 position 配置显示侧栏
+ */
+export function getResponsiveSidebarConfig(): ResponsiveSidebarConfig {
+	const position = sidebarLayoutConfig.position;
+	const tabletSidebar = sidebarLayoutConfig.tabletSidebar ?? "left";
+
+	// position为right时，左侧组件不参与布局计算
+	const hasLeftComponents =
+		sidebarLayoutConfig.enable &&
+		position !== "right" &&
+		sidebarLayoutConfig.leftComponents.some((comp) => comp.enable);
+
+	// position为left时，右侧组件不参与布局计算（即使启用也会被CSS隐藏）
+	const hasRightComponents =
+		sidebarLayoutConfig.enable &&
+		position !== "left" &&
+		sidebarLayoutConfig.rightComponents.some((comp) => comp.enable);
+
+	const visibleOn = (
+		comps: {
+			enable: boolean;
+			showOnPostPage?: boolean;
+			hideOnNonPostPage?: boolean;
+		}[],
+		isPostPage: boolean,
+	): boolean =>
+		comps.some((comp) => isWidgetVisibleOnPageType(comp, isPostPage));
 
 	return {
-		globalSidebarEnabled,
-		sidebarPosition,
-		isBothSidebars,
-		mobileShowSidebar:
-			globalSidebarEnabled && widgetManager.shouldShowSidebar("mobile"),
-		tabletShowSidebar:
-			globalSidebarEnabled && widgetManager.shouldShowSidebar("tablet"),
-		desktopShowSidebar:
-			globalSidebarEnabled && widgetManager.shouldShowSidebar("desktop"),
-		// 检查左右侧边栏是否有组件
-		hasLeftComponents:
-			isBothSidebars && widgetManager.hasComponentsInSidebar("left"),
-		hasRightComponents:
-			isBothSidebars && widgetManager.hasComponentsInSidebar("right"),
-		// 检查各设备上左右侧边栏是否有可见组件
-		hasLeftComponentsMobile:
-			isBothSidebars &&
-			widgetManager.hasVisibleComponentsInSidebar("left", "mobile"),
-		hasLeftComponentsTablet:
-			isBothSidebars &&
-			widgetManager.hasVisibleComponentsInSidebar("left", "tablet"),
-		hasLeftComponentsDesktop:
-			isBothSidebars &&
-			widgetManager.hasVisibleComponentsInSidebar("left", "desktop"),
-		hasRightComponentsMobile:
-			isBothSidebars &&
-			widgetManager.hasVisibleComponentsInSidebar("right", "mobile"),
-		hasRightComponentsTablet:
-			isBothSidebars &&
-			widgetManager.hasVisibleComponentsInSidebar("right", "tablet"),
-		hasRightComponentsDesktop:
-			isBothSidebars &&
-			widgetManager.hasVisibleComponentsInSidebar("right", "desktop"),
+		hasLeftComponents,
+		hasRightComponents,
+		tabletSidebar,
+		hasLeftWidgetsOnPost: visibleOn(sidebarLayoutConfig.leftComponents, true),
+		hasLeftWidgetsOnNonPost: visibleOn(
+			sidebarLayoutConfig.leftComponents,
+			false,
+		),
+		hasRightWidgetsOnPost: visibleOn(sidebarLayoutConfig.rightComponents, true),
+		hasRightWidgetsOnNonPost: visibleOn(
+			sidebarLayoutConfig.rightComponents,
+			false,
+		),
 	};
-};
+}
 
-// 生成网格布局类名
-export const generateGridClasses = (
-	config: ReturnType<typeof getResponsiveSidebarConfig>,
-) => {
-	const {
-		mobileShowSidebar,
-		tabletShowSidebar,
-		desktopShowSidebar,
-		isBothSidebars,
-		hasLeftComponentsMobile,
-		hasLeftComponentsTablet,
-		hasLeftComponentsDesktop,
-		hasRightComponentsMobile,
-		hasRightComponentsTablet,
-		hasRightComponentsDesktop,
-	} = config;
+/** computeGridColumns 的输入，SSR 与客户端共用同一组值 */
+export interface GridColumnsInput {
+	enabled: boolean;
+	position: "left" | "right" | "both";
+	tabletSidebar: "left" | "right";
+	hideSidebarOnPostPage: boolean;
+	isPostPage: boolean;
+	hasLeftWidgets: boolean;
+	hasRightWidgets: boolean;
+	/** 无侧栏列时内容栏占包裹层总宽的比例（0–1），不设置或 ≥1 则铺满 */
+	noSidebarContentWidth?: number;
+}
 
-	let gridCols = "";
+/** #main-grid 的列几何，由 gridColumnVarsToStyle 序列化 */
+export interface GridColumnVars {
+	"--cols-md": string;
+	"--cols-xl": string;
+	"--left-display-md": "contents" | "none";
+	"--left-display-xl": "contents" | "none";
+	"--right-display-md": "contents" | "none";
+	"--right-display-xl": "contents" | "none";
+	/** 侧栏列宽。不能叫 --sidebar-width，那会遮蔽 variables.styl 里的同名全局变量 */
+	"--grid-sidebar-width": string;
+	/** 内容栏占包裹层总宽的比例（无单位，1 = 不收窄），按断点各自判定 */
+	"--content-ratio-md": number;
+	"--content-ratio-xl": number;
+}
 
-	if (isBothSidebars) {
-		// 双侧边栏布局 - 根据各设备上实际可见组件决定布局
-		// 移动端
-		let mobileGrid = "grid-cols-1";
-		if (
-			mobileShowSidebar &&
-			hasLeftComponentsMobile &&
-			hasRightComponentsMobile
-		) {
-			mobileGrid = "grid-cols-1";
-		} else if (
-			mobileShowSidebar &&
-			(hasLeftComponentsMobile || hasRightComponentsMobile)
-		) {
-			mobileGrid = "grid-cols-1";
-		}
+/** 按左右两侧是否占列生成轨道串 */
+function trackSegments(left: boolean, right: boolean): string {
+	if (left && right) return `${SIDEBAR_TRACK} 1fr ${SIDEBAR_TRACK}`;
+	if (left) return `${SIDEBAR_TRACK} 1fr`;
+	if (right) return `1fr ${SIDEBAR_TRACK}`;
+	return "1fr";
+}
 
-		// 平板端
-		let tabletGrid = "md:grid-cols-1";
-		if (
-			tabletShowSidebar &&
-			hasLeftComponentsTablet &&
-			hasRightComponentsTablet
-		) {
-			tabletGrid = "md:grid-cols-[17.5rem_1fr_17.5rem]";
-		} else if (tabletShowSidebar && hasLeftComponentsTablet) {
-			tabletGrid = "md:grid-cols-[17.5rem_1fr]";
-		} else if (tabletShowSidebar && hasRightComponentsTablet) {
-			tabletGrid = "md:grid-cols-[1fr_17.5rem]";
-		}
+/**
+ * 计算 #main-grid 的列几何（SSR 与客户端共用的唯一真源）。
+ * 侧栏包裹层是 display:contents，真正的 grid item 是内层元素，按 DOM 顺序自动放置即可。
+ */
+export function computeGridColumns(input: GridColumnsInput): GridColumnVars {
+	// 整站禁用，或文章页整体隐藏侧栏
+	const sidebarActive =
+		input.enabled && !(input.isPostPage && input.hideSidebarOnPostPage);
 
-		// 桌面端
-		let desktopGrid = "lg:grid-cols-1";
-		if (
-			desktopShowSidebar &&
-			hasLeftComponentsDesktop &&
-			hasRightComponentsDesktop
-		) {
-			desktopGrid = "lg:grid-cols-[17.5rem_1fr_17.5rem]";
-		} else if (desktopShowSidebar && hasLeftComponentsDesktop) {
-			desktopGrid = "lg:grid-cols-[17.5rem_1fr]";
-		} else if (desktopShowSidebar && hasRightComponentsDesktop) {
-			desktopGrid = "lg:grid-cols-[1fr_17.5rem]";
-		}
+	const leftIn =
+		sidebarActive && input.hasLeftWidgets && input.position !== "right";
+	const rightIn =
+		sidebarActive && input.hasRightWidgets && input.position !== "left";
 
-		gridCols = `${mobileGrid} ${tabletGrid} ${desktopGrid}`.trim();
-	} else {
-		// 单侧边栏布局（左侧）
-		gridCols = `
-			grid-cols-1
-			${tabletShowSidebar ? "md:grid-cols-[17.5rem_1fr]" : "md:grid-cols-1"}
-			${desktopShowSidebar ? "lg:grid-cols-[17.5rem_1fr]" : "lg:grid-cols-1"}
-		`
-			.trim()
-			.replace(/\s+/g, " ");
-	}
+	// 平板端：position 为 both 时只显示 tabletSidebar 指定的那一侧
+	const mdLeft =
+		leftIn &&
+		(input.position === "left" ||
+			(input.position === "both" && input.tabletSidebar === "left"));
+	const mdRight =
+		rightIn &&
+		(input.position === "right" ||
+			(input.position === "both" && input.tabletSidebar === "right"));
 
-	return { gridCols };
-};
+	// 侧栏已启用但本断点无侧栏列 → 内容栏按比例收窄；比例钳到 [0,1]，1 即不收窄
+	// 闸门用 enabled 而非 sidebarActive：enable: false 时仍铺满。md 与 xl 需各自判定
+	const raw = input.noSidebarContentWidth;
+	const ratio =
+		raw == null || !Number.isFinite(raw) ? 1 : Math.min(1, Math.max(0, raw));
+	const ratioMd = input.enabled && !mdLeft && !mdRight ? ratio : 1;
+	const ratioXl = input.enabled && !leftIn && !rightIn ? ratio : 1;
 
-// 生成侧边栏类名（用于单侧边栏或双侧边栏中的左侧）
-export const generateSidebarClasses = (
-	config: ReturnType<typeof getResponsiveSidebarConfig>,
-) => {
-	const {
-		mobileShowSidebar,
-		tabletShowSidebar,
-		desktopShowSidebar,
-		isBothSidebars,
-	} = config;
+	return {
+		"--cols-md": trackSegments(mdLeft, mdRight),
+		"--cols-xl": trackSegments(leftIn, rightIn),
+		"--left-display-md": mdLeft ? "contents" : "none",
+		"--left-display-xl": leftIn ? "contents" : "none",
+		"--right-display-md": mdRight ? "contents" : "none",
+		"--right-display-xl": rightIn ? "contents" : "none",
+		"--grid-sidebar-width": SIDEBAR_WIDTH,
+		"--content-ratio-md": ratioMd,
+		"--content-ratio-xl": ratioXl,
+	};
+}
 
-	if (isBothSidebars) {
-		// 左侧边栏
-		return `
-			mb-4 row-start-2 row-end-3 col-span-2 onload-animation
-			${mobileShowSidebar ? "block" : "hidden"}
-			${tabletShowSidebar ? "md:block md:row-start-1 md:row-end-2 md:max-w-[17.5rem] md:col-start-1 md:col-end-2" : "md:hidden"}
-			${desktopShowSidebar ? "lg:block lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] lg:col-start-1 lg:col-end-2" : "lg:hidden"}
-		`
-			.trim()
-			.replace(/\s+/g, " ");
-	}
-
-	// 单侧边栏（左侧）
-	return `
-		mb-4 row-start-2 row-end-3 col-span-2 onload-animation
-		${mobileShowSidebar ? "block" : "hidden"}
-		${tabletShowSidebar ? "md:block md:row-start-1 md:row-end-2 md:max-w-[17.5rem] md:col-start-1 md:col-end-2" : "md:hidden"}
-		${desktopShowSidebar ? "lg:block lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] lg:col-start-1 lg:col-end-2" : "lg:hidden"}
-	`
-		.trim()
-		.replace(/\s+/g, " ");
-};
-
-// 生成右侧边栏类名（仅用于双侧边栏）
-export const generateRightSidebarClasses = (
-	config: ReturnType<typeof getResponsiveSidebarConfig>,
-) => {
-	const {
-		mobileShowSidebar,
-		tabletShowSidebar,
-		desktopShowSidebar,
-		hasLeftComponentsTablet,
-		hasLeftComponentsDesktop,
-		hasRightComponentsMobile,
-		hasRightComponentsTablet,
-		hasRightComponentsDesktop,
-	} = config;
-
-	// 根据是否有左侧边栏决定列位置
-	const tabletCol = hasLeftComponentsTablet
-		? "md:col-start-3 md:col-end-4"
-		: "md:col-start-2 md:col-end-3";
-	const desktopCol = hasLeftComponentsDesktop
-		? "lg:col-start-3 lg:col-end-4"
-		: "lg:col-start-2 lg:col-end-3";
-
-	// 根据是否有可见组件决定显示
-	const mobileDisplay =
-		mobileShowSidebar && hasRightComponentsMobile ? "block" : "hidden";
-	const tabletDisplay =
-		tabletShowSidebar && hasRightComponentsTablet
-			? `md:block md:row-start-1 md:row-end-2 md:max-w-[17.5rem] ${tabletCol}`
-			: "md:hidden";
-	const desktopDisplay =
-		desktopShowSidebar && hasRightComponentsDesktop
-			? `lg:block lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] ${desktopCol}`
-			: "lg:hidden";
-
-	return `
-		mb-4 row-start-3 row-end-4 col-span-2 onload-animation
-		${mobileDisplay}
-		${tabletDisplay}
-		${desktopDisplay}
-	`
-		.trim()
-		.replace(/\s+/g, " ");
-};
-
-// 生成主内容类名
-export const generateMainContentClasses = (
-	config: ReturnType<typeof getResponsiveSidebarConfig>,
-) => {
-	const {
-		mobileShowSidebar,
-		tabletShowSidebar,
-		desktopShowSidebar,
-		isBothSidebars,
-		hasLeftComponentsMobile,
-		hasLeftComponentsTablet,
-		hasLeftComponentsDesktop,
-		hasRightComponentsMobile,
-		hasRightComponentsTablet,
-		hasRightComponentsDesktop,
-	} = config;
-
-	if (isBothSidebars) {
-		// 双侧边栏布局：主内容区位置根据各设备上实际可见组件调整
-		let mobileCol = "col-span-1";
-		let tabletCol = "md:col-span-1";
-		let desktopCol = "lg:col-span-1";
-
-		// 移动端
-		if (
-			mobileShowSidebar &&
-			hasLeftComponentsMobile &&
-			hasRightComponentsMobile
-		) {
-			mobileCol = "col-span-2";
-		} else if (
-			mobileShowSidebar &&
-			(hasLeftComponentsMobile || hasRightComponentsMobile)
-		) {
-			mobileCol = "col-span-2";
-		}
-
-		// 平板端
-		if (
-			tabletShowSidebar &&
-			hasLeftComponentsTablet &&
-			hasRightComponentsTablet
-		) {
-			// 三栏布局:主内容在中间
-			tabletCol = "md:col-start-2 md:col-end-3";
-		} else if (tabletShowSidebar && hasLeftComponentsTablet) {
-			// 左侧边栏+主内容
-			tabletCol = "md:col-start-2 md:col-end-3";
-		} else if (tabletShowSidebar && hasRightComponentsTablet) {
-			// 主内容+右侧边栏
-			tabletCol = "md:col-start-1 md:col-end-2";
-		}
-
-		// 桌面端
-		if (
-			desktopShowSidebar &&
-			hasLeftComponentsDesktop &&
-			hasRightComponentsDesktop
-		) {
-			// 三栏布局:主内容在中间
-			desktopCol = "lg:col-start-2 lg:col-end-3";
-		} else if (desktopShowSidebar && hasLeftComponentsDesktop) {
-			// 左侧边栏+主内容
-			desktopCol = "lg:col-start-2 lg:col-end-3";
-		} else if (desktopShowSidebar && hasRightComponentsDesktop) {
-			// 主内容+右侧边栏
-			desktopCol = "lg:col-start-1 lg:col-end-2";
-		}
-
-		return `transition-swup-fade overflow-hidden w-full ${mobileCol} ${tabletCol} ${desktopCol}`.trim();
-	}
-
-	// 单侧边栏（左侧）：主内容在右边
-	return `
-		transition-swup-fade overflow-hidden w-full
-		${mobileShowSidebar ? "col-span-2" : "col-span-1"}
-		${tabletShowSidebar ? "md:col-start-2 md:col-end-3" : "md:col-span-1"}
-		${desktopShowSidebar ? "lg:col-start-2 lg:col-end-3" : "lg:col-span-1"}
-	`
-		.trim()
-		.replace(/\s+/g, " ");
-};
+/** 序列化为 inline style 属性值（自定义属性值含空格，不能用对象形式） */
+export function gridColumnVarsToStyle(vars: GridColumnVars): string {
+	return Object.entries(vars)
+		.map(([key, value]) => `${key}:${value}`)
+		.join(";");
+}

@@ -1,96 +1,49 @@
-import { coverImageConfig } from "@/config/coverImageConfig";
+import { coverImageConfig } from "../config/coverImageConfig";
+import { siteConfig } from "../config/siteConfig";
+import type { ImageFormat } from "../types/config";
 
 const { randomCoverImage } = coverImageConfig;
 
 /**
- * 处理文章封面图
- * 当image字段为"api"时，从配置的随机图API获取图片
- * @param image - 文章frontmatter中的image字段值
- * @param seed - 用于生成随机图的种子（通常使用文章slug或id）
- * @returns 处理后的图片URL
+ * 根据seed生成确定性hash值
  */
-export async function processCoverImage(
-	image: string | undefined,
-	seed?: string,
-): Promise<string> {
-	// 如果image不存在或为空，直接返回
-	if (!image || image === "") {
-		return "";
-	}
-
-	// 如果image不是"api"，直接返回原始值
-	if (image !== "api") {
-		return image;
-	}
-
-	// 如果未启用随机图功能，直接返回空字符串（不显示封面，也不显示备用图）
-	if (
-		!randomCoverImage.enable ||
-		!randomCoverImage.apis ||
-		randomCoverImage.apis.length === 0
-	) {
-		return "";
-	}
-
-	try {
-		// 随机选择一个API
-		const randomApi =
-			randomCoverImage.apis[
-				Math.floor(Math.random() * randomCoverImage.apis.length)
-			];
-
-		// 生成seed值：使用文章slug或时间戳
-		const seedValue = seed || Date.now().toString();
-
-		// 如果API中包含{seed}占位符，替换它
-		let apiUrl = randomApi.replace(/{seed}/g, seedValue);
-
-		// 如果API中没有{seed}占位符，需要添加随机参数确保每篇文章获取不同图片
-		if (!randomApi.includes("{seed}")) {
-			// 将seed转换为数字hash（确保每个不同的slug产生不同的hash）
-			const hash = seedValue.split("").reduce((acc, char) => {
-				return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
-			}, 0);
-
-			// 添加查询参数来确保每篇文章获取不同的图片
-			const separator = apiUrl.includes("?") ? "&" : "?";
-			// 使用hash确保每篇文章有不同的URL（稳定且唯一，基于文章slug）
-			// 注意：如果API不支持查询参数来获取不同图片，可能需要配置支持seed占位符的API
-			apiUrl = `${apiUrl}${separator}v=${Math.abs(hash)}`;
-		}
-
-		// 在构建时直接返回API URL（客户端会请求）
-		// 注意：如果API返回的是JSON格式，需要特殊处理
-		return apiUrl;
-	} catch (error) {
-		console.warn("Failed to process random image API:", error);
-		// 即使出错，如果enable为false也不返回fallback，直接返回空字符串
-		if (!randomCoverImage.enable) {
-			return "";
-		}
-		return randomCoverImage.fallback || "";
-	}
+function getSeedHash(seed?: string): number {
+	return seed
+		? Math.abs(
+				seed.split("").reduce((acc, char) => {
+					return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
+				}, 0),
+			)
+		: 0;
 }
 
 /**
- * 同步版本（用于不需要异步的场景）
- * 当image字段为"api"时，返回第一个API URL，客户端会依次尝试所有API
+ * 为API URL添加seed参数，确保每篇文章获取不同图片
+ */
+function appendSeedParam(apiUrl: string, hash: number): string {
+	if (hash === 0) return apiUrl;
+	const separator = apiUrl.includes("?") ? "&" : "?";
+	return `${apiUrl}${separator}v=${hash}`;
+}
+
+/**
+ * 处理文章封面图
+ * 当image字段为"api"时，返回第一个API的URL（客户端会按顺序尝试所有API）
+ * @param image - 文章frontmatter中的image字段值
+ * @param seed - 用于生成唯一URL的种子（文章id或slug）
  */
 export function processCoverImageSync(
 	image: string | undefined,
 	seed?: string,
 ): string {
-	// 如果image不存在或为空，直接返回
 	if (!image || image === "") {
 		return "";
 	}
 
-	// 如果image不是"api"，直接返回原始值
 	if (image !== "api") {
 		return image;
 	}
 
-	// 如果未启用随机图功能，直接返回空字符串（不显示封面，也不显示备用图）
 	if (
 		!randomCoverImage.enable ||
 		!randomCoverImage.apis ||
@@ -99,66 +52,75 @@ export function processCoverImageSync(
 		return "";
 	}
 
-	try {
-		// 返回第一个API，客户端脚本会依次尝试所有API
-		const firstApi = randomCoverImage.apis[0];
+	// 始终使用第一个API，失败时由客户端按顺序尝试后续API
+	const hash = getSeedHash(seed);
+	return appendSeedParam(randomCoverImage.apis[0], hash);
+}
 
-		// 生成seed值：使用文章slug或时间戳
-		const seedValue = seed || Date.now().toString();
+/**
+ * 获取所有随机封面图API URL列表（带seed参数）
+ * 用于客户端按顺序尝试，第一个成功即使用，全部失败则显示回退图片
+ * @param image - 文章frontmatter中的image字段值
+ * @param seed - 用于生成唯一URL的种子（文章id或slug）
+ */
+export function getApiUrlList(
+	image: string | undefined,
+	seed?: string,
+): string[] {
+	if (image !== "api" || !randomCoverImage.enable || !randomCoverImage.apis) {
+		return [];
+	}
 
-		// 如果API中包含{seed}占位符，替换它
-		let apiUrl = firstApi.replace(/{seed}/g, seedValue);
+	const hash = getSeedHash(seed);
+	return randomCoverImage.apis.map((api) => appendSeedParam(api, hash));
+}
 
-		// 如果API中没有{seed}占位符，需要添加随机参数确保每篇文章获取不同图片
-		if (!firstApi.includes("{seed}")) {
-			// 将seed转换为数字hash（确保每个不同的slug产生不同的hash）
-			const hash = seedValue.split("").reduce((acc, char) => {
-				return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
-			}, 0);
-
-			// 添加查询参数来确保每篇文章获取不同的图片
-			const separator = apiUrl.includes("?") ? "&" : "?";
-			// 使用hash确保每篇文章有不同的URL（稳定且唯一，基于文章slug）
-			// 注意：如果API不支持查询参数来获取不同图片，可能需要配置支持seed占位符的API
-			apiUrl = `${apiUrl}${separator}v=${Math.abs(hash)}`;
-		}
-
-		return apiUrl;
-	} catch (error) {
-		console.warn("Failed to process random image API:", error);
-		// 即使出错，如果enable为false也不返回fallback，直接返回空字符串
-		if (!randomCoverImage.enable) {
-			return "";
-		}
-		return randomCoverImage.fallback || "";
+/**
+ * 获取图片优化格式配置
+ */
+export function getImageFormats(): ImageFormat[] {
+	const formatConfig = siteConfig.imageOptimization?.formats ?? "both";
+	switch (formatConfig) {
+		case "avif":
+			return ["avif"];
+		case "webp":
+			return ["webp"];
+		default:
+			return ["avif", "webp"];
 	}
 }
 
 /**
- * 生成所有API URL列表（用于客户端重试）
+ * 获取图片优化质量配置
  */
-export function generateApiUrls(seed?: string): string[] {
-	if (
-		!randomCoverImage.enable ||
-		!randomCoverImage.apis ||
-		randomCoverImage.apis.length === 0
-	) {
-		return [];
+export function getImageQuality(): number {
+	return siteConfig.imageOptimization?.quality ?? 80;
+}
+
+/**
+ * 获取图片回退格式
+ */
+export function getFallbackFormat(): "avif" | "webp" {
+	const formatConfig = siteConfig.imageOptimization?.formats ?? "both";
+	return formatConfig === "avif" ? "avif" : "webp";
+}
+
+/**
+ * 检查是否需要为图片添加 referrerpolicy="no-referrer" 以解决防盗链 403 问题
+ */
+export function shouldAddNoReferrer(urlStr: string): boolean {
+	if (!urlStr.startsWith("http")) return false;
+	const domains = siteConfig.imageOptimization?.noReferrerDomains || [];
+	if (domains.length === 0) return false;
+	try {
+		const hostname = new URL(urlStr).hostname;
+		return domains.some((pattern) => {
+			// 先完整转义正则元字符，再把用户写的 * 通配符还原为 .*
+			const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+			const regexPattern = escaped.replace(/\\\*/g, ".*");
+			return new RegExp(`^${regexPattern}$`).test(hostname);
+		});
+	} catch {
+		return false;
 	}
-
-	const seedValue = seed || Date.now().toString();
-	const hash = seedValue.split("").reduce((acc, char) => {
-		return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
-	}, 0);
-
-	return randomCoverImage.apis.map((api) => {
-		let apiUrl = api.replace(/{seed}/g, seedValue);
-
-		if (!api.includes("{seed}")) {
-			const separator = apiUrl.includes("?") ? "&" : "?";
-			apiUrl = `${apiUrl}${separator}v=${Math.abs(hash)}`;
-		}
-
-		return apiUrl;
-	});
 }

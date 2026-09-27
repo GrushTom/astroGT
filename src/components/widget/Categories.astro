@@ -3,32 +3,28 @@ import ButtonLink from "@/components/common/ButtonLink.astro";
 import WidgetLayout from "@/components/common/WidgetLayout.astro";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
+import type { WidgetComponentConfig } from "@/types/config";
 import { getCategoryList } from "@/utils/content-utils";
-import { widgetManager } from "@/utils/widget-manager";
 
 const categories = await getCategoryList();
 
 const COLLAPSED_HEIGHT = "7.5rem";
 
-// 使用统一的组件管理器检查是否应该折叠
-const allComponents = [
-	...widgetManager.getConfig().leftComponents,
-	...widgetManager.getConfig().rightComponents,
-];
-const categoriesComponent = allComponents.find((c) => c.type === "categories");
-const isCollapsed = categoriesComponent
-	? widgetManager.isCollapsed(categoriesComponent, categories.length)
-	: false;
-
 interface Props {
 	class?: string;
 	style?: string;
+	widgetConfig?: WidgetComponentConfig;
 }
-const className = Astro.props.class;
-const style = Astro.props.style;
+const { class: className, style, widgetConfig } = Astro.props;
+
+const collapseThreshold = widgetConfig?.specificConfig?.collapseThreshold;
+const showTitle = widgetConfig?.showTitle !== false;
+const isCollapsed = collapseThreshold
+	? categories.length > collapseThreshold
+	: false;
 ---
 
-<WidgetLayout name={i18n(I18nKey.categories)} id="categories" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT}
+<WidgetLayout name={i18n(I18nKey.categories)} showTitle={showTitle} id="categories" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT}
                 class={className} style={style}
 >
     {categories.map((c) =>

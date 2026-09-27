@@ -9,34 +9,48 @@ import { Icon } from "astro-icon/components";
 interface Props {
 	id: string;
 	icon: string;
+	/** 可选的第二图标：提供后，按钮加上 .toggled 类时显示此图标、隐藏默认图标 */
+	toggleIcon?: string;
+	/** 悬停提示文字（原生 tooltip）；缺省时退回 ariaLabel */
+	title?: string;
 	ariaLabel?: string;
 	onclick?: string;
 	class?: string;
 }
 
-const { id, icon, ariaLabel, onclick, class: className = "" } = Astro.props;
+const {
+	id,
+	icon,
+	toggleIcon,
+	title,
+	ariaLabel,
+	onclick,
+	class: className = "",
+} = Astro.props;
 ---
 
 <div
   id={id}
-  class:list={["floating-btn", className, "flex items-center rounded-2xl overflow-hidden transition"]}
+  title={title ?? ariaLabel}
+  class:list={["floating-btn", className, "card-base flex items-center rounded-2xl overflow-hidden transition"]}
   onclick={onclick}
 >
   <button
     aria-label={ariaLabel}
-    class="h-full w-full rounded-2xl"
+    class:list={["h-full w-full rounded-2xl", toggleIcon && "has-toggle-icon"]}
   >
-    <Icon name={icon} class="mx-auto" />
+    <Icon name={icon} class:list={["mx-auto", toggleIcon && "icon-default"]} />
+    {toggleIcon && <Icon name={toggleIcon} class="icon-toggled" />}
   </button>
 </div>
 
 <style lang="stylus">
 .floating-btn
     color: var(--primary)
-    font-size: 2.25rem
+    font-size: 1.5rem
     font-weight: bold
-    width: 4rem
-    height: 4rem
+    width: 3rem
+    height: 3rem
     
     opacity: 1
     cursor: pointer
@@ -52,9 +66,32 @@ const { id, icon, ariaLabel, onclick, class: className = "" } = Astro.props;
     
     /* 图标样式 */
     :global(svg)
-        font-size: 1.75rem
+        font-size: 1.6rem
         opacity: 1
         transition: opacity 0.2s ease 0.1s /* 显示时：延迟出现，通过 delay 避免"先出现icon" */
+
+    /* 双图标切换：两个图标叠放在按钮正中（grid 同格），靠 .toggled 切换显隐 */
+    button.has-toggle-icon
+        display: grid
+        place-items: center
+
+        :global(svg)
+            grid-area: 1 / 1
+
+    :global(svg.icon-toggled)
+        display: none
+
+    &.toggled
+        /* 面板展开时的选中态背景 */
+        background-color: var(--btn-regular-bg)
+
+        :global(svg.icon-default)
+            display: none
+        :global(svg.icon-toggled)
+            display: block
+
+        &:hover
+            background-color: var(--btn-regular-bg-hover)
 
     &.hide
         /* 隐藏状态：缩小并收起布局 */
@@ -80,21 +117,26 @@ const { id, icon, ariaLabel, onclick, class: className = "" } = Astro.props;
         transform: scale(0.9)
         
     &:hover
-        transform: scale(1.05)
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15)
-        background-color: rgba(255, 255, 255, 0.95)
-        border-color: rgba(0, 0, 0, 0.2)
+        background-color: var(--btn-card-bg-hover)
+        color: var(--primary)
+        box-shadow: var(--shadow-button)
 
 /* 暗色主题样式 */
 :global(.dark) .floating-btn
     background-color: var(--card-bg)
     border: 1px solid rgba(255, 255, 255, 0.15)
     color: var(--primary, #60a5fa)
-    
+
     &:hover
-        background-color: var(--card-bg)
-        border-color: rgba(255, 255, 255, 0.3)
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3)
+        background-color: var(--btn-card-bg-hover)
+        color: var(--primary)
+        box-shadow: var(--shadow-button-dark)
+
+    &.toggled
+        background-color: var(--btn-regular-bg)
+
+        &:hover
+            background-color: var(--btn-regular-bg-hover)
 
 /* 响应式调整 */
 @media (max-width: 768px)
@@ -104,7 +146,7 @@ const { id, icon, ariaLabel, onclick, class: className = "" } = Astro.props;
         font-size: 1.5rem
         border-radius: 0.75rem
         :global(svg)
-            font-size: 1.25rem
+            font-size: 1.5rem
 
 @media (max-width: 480px)
     .floating-btn
@@ -113,7 +155,7 @@ const { id, icon, ariaLabel, onclick, class: className = "" } = Astro.props;
         font-size: 1.25rem
         border-radius: 0.5rem
         :global(svg)
-            font-size: 1rem
+            font-size: 1.2rem
 
 @media (max-width: 360px)
     .floating-btn
@@ -122,7 +164,7 @@ const { id, icon, ariaLabel, onclick, class: className = "" } = Astro.props;
         font-size: 1rem
         border-radius: 0.375rem
         :global(svg)
-            font-size: 0.875rem
+            font-size: 1rem
 
 @media (max-width: 320px)
     .floating-btn
@@ -131,7 +173,7 @@ const { id, icon, ariaLabel, onclick, class: className = "" } = Astro.props;
         font-size: 0.875rem
         border-radius: 0.25rem
         :global(svg)
-            font-size: 0.75rem
+            font-size: 0.875rem
 
 /* 确保按钮始终在可视区域内 */
 .floating-btn

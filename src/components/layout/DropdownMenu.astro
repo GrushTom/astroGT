@@ -2,8 +2,7 @@
 import { Icon } from "astro-icon/components";
 import DropdownItem from "@/components/common/DropdownItem.astro";
 import DropdownPanel from "@/components/common/DropdownPanel.astro";
-import { LinkPresets } from "@/constants/link-presets";
-import { LinkPreset, type NavBarLink } from "@/types/config";
+import type { NavBarLink } from "@/types/config";
 import { url } from "@/utils/url-utils";
 
 interface Props {
@@ -18,22 +17,7 @@ if (!link) {
 	return null;
 }
 
-// 转换子菜单中的LinkPreset为NavBarLink
-const processedLink = {
-	...link,
-	children: link.children
-		?.map((child: NavBarLink | LinkPreset): NavBarLink | null => {
-			if (typeof child === "number") {
-				// 检查 LinkPreset 是否存在于 LinkPresets 中
-				if (child in LinkPresets) {
-					return LinkPresets[child as LinkPreset];
-				}
-				return null;
-			}
-			return child;
-		})
-		.filter((child): child is NavBarLink => child !== null),
-};
+const processedLink = link;
 
 const hasChildren = processedLink.children && processedLink.children.length > 0;
 ---
@@ -41,16 +25,16 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 <div class:list={["dropdown-container", className]} data-dropdown>
 	{hasChildren ? (
 		<button 
-			class="btn-plain scale-animation rounded-lg h-11 font-bold px-5 active:scale-95 dropdown-trigger"
+			class="btn-plain scale-animation rounded-lg h-10 font-bold px-4 pr-8 active:scale-95 dropdown-trigger relative"
 			aria-expanded="false"
 			aria-haspopup="true"
 			data-dropdown-trigger
 		>
-			<div class="flex items-center">
-				{processedLink.icon && <Icon name={processedLink.icon} class="text-[1.1rem] mr-2 navbar-icon" />}
+			<div class="flex items-center gap-1.5">
+				{processedLink.icon && <Icon name={processedLink.icon} class="text-[1.1rem] mr-1.5 navbar-icon" />}
 				{processedLink.name}
-				<Icon name="material-symbols:keyboard-arrow-down-rounded" class="text-[1.25rem] transition-transform duration-200 dropdown-arrow ml-1" />
 			</div>
+			<Icon name="material-symbols:keyboard-arrow-down-rounded" class="text-[1.2rem] transition-transform duration-200 dropdown-arrow absolute right-2.5 top-1/2 -translate-y-1/2" />
 		</button>
 		<div class="dropdown-menu" data-dropdown-menu>
 			<DropdownPanel class="dropdown-content">
@@ -59,12 +43,12 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 						href={child.external ? child.url : url(child.url)}
 						target={child.external ? "_blank" : undefined}
 						isLast={index === (processedLink.children?.length || 0) - 1}
-						class="dropdown-item"
+						class="dropdown-item focus-ring-inset h-10"
 					>
 						{child.icon && <Icon name={child.icon} class="text-[1.25rem] mr-3 navbar-icon" />}
 						<span>{child.name}</span>
 						{child.external && (
-							<Icon name="fa6-solid:arrow-up-right-from-square" class="text-[0.75rem] text-black/25 dark:text-white/25 ml-auto" />
+							<Icon name="fa7-solid:arrow-up-right-from-square" class="text-[0.75rem] text-black/25 dark:text-white/25 ml-auto" />
 						)}
 					</DropdownItem>
 				))}
@@ -75,38 +59,36 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 			aria-label={processedLink.name} 
 			href={processedLink.external ? processedLink.url : url(processedLink.url)} 
 			target={processedLink.external ? "_blank" : null}
-			class="btn-plain scale-animation rounded-lg h-11 font-bold px-5 active:scale-95"
+			class="btn-plain scale-animation rounded-lg h-10 font-bold px-4 active:scale-95"
 		>
-			<div class="flex items-center">
-				{processedLink.icon && <Icon name={processedLink.icon} class="text-[1.1rem] mr-2 navbar-icon" />}
+			<div class="flex items-center gap-1.5">
+				{processedLink.icon && <Icon name={processedLink.icon} class="text-[1.1rem] mr-1.5 navbar-icon" />}
 				{processedLink.name}
-				{processedLink.external && <Icon name="fa6-solid:arrow-up-right-from-square" class="text-[0.875rem] transition -translate-y-[1px] ml-1 text-black/[0.2] dark:text-white/[0.2]" />}
+				{processedLink.external && <Icon name="fa7-solid:arrow-up-right-from-square" class="text-[0.875rem] transition -translate-y-px ml-1 text-black/20 dark:text-white/20" />}
 			</div>
 		</a>
 	)}
 </div>
 
 <style>
+	@reference "../../styles/main.css";
+
 	.dropdown-container {
 		@apply relative;
 	}
 
 	.dropdown-menu {
-		@apply absolute top-full left-0 pt-2 opacity-0 invisible pointer-events-none transition-all duration-200 ease-out transform translate-y-[-8px] z-50;
+		@apply absolute top-full left-0 pt-2 pointer-events-none z-50;
 	}
 
 	.dropdown-container:hover .dropdown-menu,
 	.dropdown-container:focus-within .dropdown-menu {
-		@apply opacity-100 visible pointer-events-auto translate-y-0;
+		@apply pointer-events-auto;
 	}
 
 	.dropdown-container:hover .dropdown-arrow,
 	.dropdown-container:focus-within .dropdown-arrow {
 		@apply rotate-180;
-	}
-
-	.dropdown-content {
-		@apply min-w-[12rem];
 	}
 
 	/* 移动端隐藏下拉菜单 */
@@ -186,16 +168,12 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 			openDropdown(_dropdown, trigger, menu);
 		}
 	}
-	
-	function openDropdown(_dropdown: Element, trigger: Element, menu: Element) {
+
+	function openDropdown(_dropdown: Element, trigger: Element, _menu: Element) {
 		trigger.setAttribute('aria-expanded', 'true');
-		menu.classList.remove('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-8px]');
-		menu.classList.add('opacity-100', 'visible', 'pointer-events-auto', 'translate-y-0');
 	}
-	
-	function closeDropdown(_dropdown: Element, trigger: Element, menu: Element) {
+
+	function closeDropdown(_dropdown: Element, trigger: Element, _menu: Element) {
 		trigger.setAttribute('aria-expanded', 'false');
-		menu.classList.add('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-8px]');
-		menu.classList.remove('opacity-100', 'visible', 'pointer-events-auto', 'translate-y-0');
 	}
 </script>

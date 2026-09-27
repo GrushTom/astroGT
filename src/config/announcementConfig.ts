@@ -1,8 +1,8 @@
-import type { AnnouncementConfig } from "../types/config";
+import type { AnnouncementConfig } from "../types/announcementConfig";
 
 export const announcementConfig: AnnouncementConfig = {
-	// 公告标题
-	title: "公告",
+	// 公告标题，留空则走i18n默认标题
+	title: "",
 
 	// 公告内容
 	content: "欢迎来到我的博客！关注Bilibili账号获取最新动态！",

@@ -1,8 +1,8 @@
 <script lang="ts">
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
-import Icon from "@iconify/svelte";
 import { onMount } from "svelte";
+import Icon from "@/components/common/Icon.svelte";
 import type { SearchResult } from "@/global";
 import { url as formatUrl } from "@/utils/url-utils";
 
@@ -92,6 +92,7 @@ onMount(() => {
 		initialize();
 	} else {
 		// 生产环境等待 Pagefind 加载
+		window.__loadPagefind?.();
 		if (window.pagefind) {
 			initialize();
 		} else {
@@ -111,16 +112,16 @@ const handleInput = () => {
 };
 </script>
 
-<div class="card-base px-6 py-6 md:px-9 md:py-6 mb-4 rounded-[var(--radius-large)]">
+<div class="card-base px-6 py-6 md:px-9 md:py-6 mb-4 rounded-(--radius-large)">
     <!-- Title Section -->
     <div class="mb-4">
         <div class="flex items-center gap-3 mb-3">
-            <div class="h-8 w-8 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white dark:text-black/70">
+            <div class="h-8 w-8 rounded-lg bg-(--primary) flex items-center justify-center text-white dark:text-black/70">
                 <Icon icon="material-symbols:search" class="text-[1.5rem]"></Icon>
             </div>
-            <h1 class="text-3xl font-bold text-90">
+            <div class="text-3xl font-bold text-90">
                 {title}
-            </h1>
+            </div>
         </div>
         {#if description}
             <p class="text-base text-50 leading-relaxed">
@@ -137,7 +138,7 @@ const handleInput = () => {
             </div>
             <input
                 type="text"
-                class="block w-full p-4 pl-10 text-sm bg-transparent border border-black/10 dark:border-white/10 rounded-lg focus:ring-[var(--primary)] focus:border-[var(--primary)] hover:border-black/20 dark:hover:border-white/20 text-75 placeholder-50 transition-colors outline-0"
+                class="block w-full p-4 pl-10 text-sm bg-transparent border border-black/10 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-(--primary) focus:border-(--primary) hover:border-black/20 dark:hover:border-white/20 text-75 placeholder:opacity-50 transition-colors outline-hidden"
                 placeholder={i18n(I18nKey.search)}
                 bind:value={keyword}
                 on:input={handleInput}
@@ -151,14 +152,14 @@ const handleInput = () => {
     <div>
         {#if isSearching}
             <div class="flex justify-center py-10">
-                <Icon icon="svg-spinners:ring-resize" class="text-4xl text-[var(--primary)]" />
+                <Icon icon="svg-spinners:ring-resize" class="text-4xl text-(--primary)" />
             </div>
         {:else if results.length > 0}
             <div class="space-y-4">
                 {#each results as result}
-                    <div class="card-base p-6 block rounded-[var(--radius-large)]">
+                    <div class="card-base p-6 block rounded-(--radius-large)">
                         <a href={result.url} class="block group">
-                            <h5 class="mb-2 text-2xl font-bold tracking-tight text-90 group-hover:text-[var(--primary)] transition-colors">
+                            <h5 class="mb-2 text-2xl font-bold tracking-tight text-90 group-hover:text-(--primary) transition-colors">
                                 {@html result.meta.title}
                             </h5>
                             <p class="font-normal text-75">
@@ -169,11 +170,11 @@ const handleInput = () => {
                 {/each}
             </div>
         {:else if keyword}
-            <div class="card-base p-10 text-center text-50 rounded-[var(--radius-large)]">
+            <div class="card-base p-10 text-center text-50 rounded-(--radius-large)">
                 {i18n(I18nKey.searchNoResults)}
             </div>
         {:else}
-             <div class="card-base p-10 text-center text-50 rounded-[var(--radius-large)]">
+             <div class="card-base p-10 text-center text-50 rounded-(--radius-large)">
                 {i18n(I18nKey.searchTypeSomething)}
             </div>
         {/if}

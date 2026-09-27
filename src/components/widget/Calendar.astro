@@ -4,14 +4,19 @@ import WidgetLayout from "@/components/common/WidgetLayout.astro";
 import { siteConfig } from "@/config/siteConfig";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
+import type { WidgetComponentConfig } from "@/types/config";
 import { url } from "@/utils/url-utils";
 
 interface Props {
 	class?: string;
 	style?: string;
+	widgetConfig?: WidgetComponentConfig;
 }
 
-const { class: className, style } = Astro.props;
+const { class: className, style, widgetConfig } = Astro.props;
+
+const showHeatmap = widgetConfig?.specificConfig?.calendar?.showHeatmap ?? true;
+const showTitle = widgetConfig?.showTitle !== false;
 
 // 月份名称（使用 i18n）
 const monthNames = [
@@ -43,30 +48,33 @@ const weekDays = [
 // 年份文本
 const yearText = i18n(I18nKey.year);
 
+// 热力图周数文本模板
+const heatmapWeekTemplate = i18n(I18nKey.calendarHeatmapWeek);
+
 // 获取当前语言
 const currentLang = siteConfig.lang || "en";
 
-const calendarDataUrl = url("/api/calendar.json");
+const calendarDataUrl = url("/api/allPostMeta.json");
 const postUrlPrefix = url("/posts/");
 ---
 
-<WidgetLayout id="calendar-widget" class={"!pt-4 [&>.widget-title]:hidden " + className} style={style}>
+<WidgetLayout name={i18n(I18nKey.calendar)} showTitle={showTitle} id="calendar-widget" class={className} style={style}>
   <div class="calendar-container">
-    <div class="flex justify-between items-center mb-4">
-        <button id="prev-month-btn" class="btn-plain rounded-lg w-8 h-8 flex items-center justify-center hover:bg-[var(--btn-plain-bg-hover)] transition-colors" aria-label="Previous Month">
-            <Icon name="fa6-solid:chevron-left" class="text-sm" />
+    <div class="flex justify-between items-center mb-2">
+        <button id="prev-month-btn" class="btn-plain rounded-lg w-8 h-8 flex items-center justify-center hover:bg-(--btn-plain-bg-hover) transition-colors" aria-label="Previous Month">
+            <Icon name="fa7-solid:chevron-left" class="text-sm" />
         </button>
-        <div id="current-month-display" class="text-lg font-bold text-neutral-900 dark:text-neutral-100 cursor-pointer hover:text-[var(--primary)] transition-colors select-none"></div>
+        <div id="current-month-display" class="text-lg font-bold text-neutral-900 dark:text-neutral-100 cursor-pointer hover:text-(--primary) transition-colors select-none"></div>
         <div class="flex gap-2">
-            <button id="reset-month-btn" class="btn-plain rounded-lg w-8 h-8 flex items-center justify-center hover:bg-[var(--btn-plain-bg-hover)] transition-colors" aria-label="Back to Today">
-                <Icon name="fa6-solid:arrow-rotate-left" class="text-sm" />
+            <button id="reset-month-btn" class="btn-plain rounded-lg w-8 h-8 flex items-center justify-center hover:bg-(--btn-plain-bg-hover) transition-colors" aria-label="Back to Today">
+                <Icon name="fa7-solid:arrow-rotate-left" class="text-sm" />
             </button>
-            <button id="next-month-btn" class="btn-plain rounded-lg w-8 h-8 flex items-center justify-center hover:bg-[var(--btn-plain-bg-hover)] transition-colors" aria-label="Next Month">
-                <Icon name="fa6-solid:chevron-right" class="text-sm" />
+            <button id="next-month-btn" class="btn-plain rounded-lg w-8 h-8 flex items-center justify-center hover:bg-(--btn-plain-bg-hover) transition-colors" aria-label="Next Month">
+                <Icon name="fa7-solid:chevron-right" class="text-sm" />
             </button>
         </div>
     </div>
-    
+
     <!-- 日历视图容器 -->
     <div id="calendar-view-container">
       <!-- 星期标题 -->
@@ -77,34 +85,43 @@ const postUrlPrefix = url("/posts/");
           </div>
         ))}
       </div>
-      
+
       <!-- 日历格子（由客户端动态生成） -->
-      <div class="calendar-grid grid grid-cols-7 gap-1" id="calendar-grid">
+      <div class="calendar-grid grid grid-cols-7 gap-1 pb-1" id="calendar-grid">
         <!-- 将由 JavaScript 填充 -->
       </div>
     </div>
 
+    <!-- 年度文章热力图 -->
+    {showHeatmap && (
+    <div id="heatmap-container" class="mb-2" style="display: none;">
+      <div class="heatmap-months grid gap-0.5 mb-1" id="heatmap-months" style="grid-template-columns: repeat(12, 1fr);"></div>
+      <div class="heatmap-grid grid" id="heatmap-grid" style="grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(4, 1fr); row-gap: 0.125rem;"></div>
+      {/* <div class="border-b border-neutral-200 dark:border-neutral-700 mt-2"></div> */}
+    </div>
+    )}
+
     <!-- 月份选择视图 -->
-    <div id="month-view-container" class="hidden grid grid-cols-3 gap-2">
+    <div id="month-view-container" class="grid grid-cols-3 gap-2" style="display: none;">
       <!-- 将由 JavaScript 填充 -->
     </div>
 
     <!-- 年份选择视图 -->
-    <div id="year-view-container" class="hidden grid grid-cols-3 gap-2">
+    <div id="year-view-container" class="grid grid-cols-3 gap-2" style="display: none;">
       <!-- 将由 JavaScript 填充 -->
     </div>
     
     <!-- 文章列表 -->
     <div id="calendar-posts" class="mt-3">
       <div class="border-t border-neutral-200 dark:border-neutral-700 mb-2" id="calendar-posts-divider" style="display: none;"></div>
-      <div class="flex flex-col gap-1" id="calendar-posts-list">
+      <div class="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar" id="calendar-posts-list">
         <!-- 将由 JavaScript 填充 -->
       </div>
     </div>
   </div>
 </WidgetLayout>
 
-<script is:inline define:vars={{ monthNames, weekDays, yearText, currentLang, calendarDataUrl, postUrlPrefix }}>
+<script is:inline data-swup-ignore-script define:vars={{ monthNames, weekDays, yearText, currentLang, calendarDataUrl, postUrlPrefix, heatmapWeekTemplate }}>
   // State variables
   let displayYear = new Date().getFullYear();
   let displayMonth = new Date().getMonth();
@@ -115,8 +132,14 @@ const postUrlPrefix = url("/posts/");
 
   async function fetchData() {
     try {
-      const response = await fetch(calendarDataUrl);
-      allPostsData = await response.json();
+      // 使用缓存避免 swup 导航时重复请求
+      if (window.__allPostMetaCache) {
+        allPostsData = window.__allPostMetaCache;
+      } else {
+        const response = await fetch(calendarDataUrl);
+        allPostsData = await response.json();
+        window.__allPostMetaCache = allPostsData;
+      }
       
       // Reconstruct postDateMap and availableYears
       postDateMap = {};
@@ -137,6 +160,100 @@ const postUrlPrefix = url("/posts/");
     } catch (error) {
       console.error("Failed to fetch calendar data", error);
     }
+  }
+
+  function renderHeatmap() {
+    const container = document.getElementById('heatmap-container');
+    const monthsEl = document.getElementById('heatmap-months');
+    const gridEl = document.getElementById('heatmap-grid');
+    if (!container || !monthsEl || !gridEl) return;
+
+    // Show heatmap only in day view
+    container.style.display = currentView === 'day' ? 'block' : 'none';
+    if (currentView !== 'day') return;
+
+    // Render month labels (numbers 1-12)
+    monthsEl.innerHTML = Array.from({length: 12}, (_, i) =>
+      `<span class="text-[10px] text-neutral-400 dark:text-neutral-500 text-center">${i + 1}</span>`
+    ).join('');
+
+    // Build weekly post counts: heatmapData[month][week] = count
+    const heatmapData = Array.from({ length: 12 }, () => [0, 0, 0, 0]);
+    allPostsData.forEach(post => {
+      const date = new Date(post.published);
+      if (date.getFullYear() !== displayYear) return;
+      const month = date.getMonth();
+      const day = date.getDate();
+      const week = Math.min(Math.floor((day - 1) / 7), 3); // 0-3
+      heatmapData[month][week]++;
+    });
+
+    // Find max for scaling
+    // Render grid cells: 12 columns × 4 rows, row-major order
+    // Use discrete opacity levels so low counts are still clearly visible
+    const opacityLevels = [0, 0.45, 0.65, 0.85, 1];
+    let cellsHtml = '';
+    for (let week = 0; week < 4; week++) {
+      for (let month = 0; month < 12; month++) {
+        const count = heatmapData[month][week];
+        const level = Math.min(count, 4);
+        const bgStyle = count === 0
+          ? 'background-color: var(--btn-plain-bg-hover)'
+          : `background-color: var(--primary); opacity: ${opacityLevels[level]}`;
+        // Generate tooltip text using i18n template
+        const tooltip = heatmapWeekTemplate
+          .replace('{month}', month + 1)
+          .replace('{week}', week + 1)
+          .replace('{count}', count);
+        cellsHtml += `<div class="heatmap-cell rounded-sm" style="${bgStyle}" data-tooltip="${tooltip}" data-month="${month}"></div>`;
+      }
+    }
+    gridEl.innerHTML = cellsHtml;
+
+    // Click on cell to navigate to that month
+    gridEl.querySelectorAll('.heatmap-cell[data-month]').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const m = parseInt(cell.getAttribute('data-month'));
+        displayMonth = m;
+        currentView = 'day';
+        renderCalendar();
+      });
+    });
+
+    // 热力图提示框 (fixed 定位，不被父容器裁剪)
+    let tooltipEl = document.getElementById('heatmap-tooltip');
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.id = 'heatmap-tooltip';
+      Object.assign(tooltipEl.style, {
+        position: 'fixed',
+        padding: '4px 8px',
+        borderRadius: '6px',
+        fontSize: '0.75rem',
+        lineHeight: '1.2',
+        background: 'rgba(0,0,0,0.8)',
+        color: '#fff',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        pointerEvents: 'none',
+        opacity: '0',
+        transition: 'opacity 0.15s ease',
+        zIndex: '9999',
+        whiteSpace: 'nowrap',
+      });
+      document.body.appendChild(tooltipEl);
+    }
+    gridEl.querySelectorAll('.heatmap-cell[data-tooltip]').forEach(cell => {
+      cell.addEventListener('mouseenter', () => {
+        tooltipEl.textContent = cell.getAttribute('data-tooltip');
+        tooltipEl.style.opacity = '1';
+        const rect = cell.getBoundingClientRect();
+        tooltipEl.style.left = rect.left + rect.width / 2 - tooltipEl.offsetWidth / 2 + 'px';
+        tooltipEl.style.top = rect.top - tooltipEl.offsetHeight - 6 + 'px';
+      });
+      cell.addEventListener('mouseleave', () => {
+        tooltipEl.style.opacity = '0';
+      });
+    });
   }
 
   // 客户端动态渲染日历
@@ -161,6 +278,8 @@ const postUrlPrefix = url("/posts/");
     } else if (currentView === 'year') {
       renderYearView();
     }
+
+    renderHeatmap();
   }
 
   function updateHeader() {
@@ -235,7 +354,7 @@ const postUrlPrefix = url("/posts/");
     calendarGrid.innerHTML = calendarDays.map(({day, hasPost, count, dateKey}) => {
       const isToday = day === currentDate && isCurrentMonth;
       const classes = [
-        "calendar-day aspect-square flex items-center justify-center rounded text-sm relative cursor-pointer"
+        "calendar-day aspect-square flex items-center justify-center rounded-sm text-sm relative cursor-pointer"
       ];
       
       if (!day) {
@@ -247,7 +366,7 @@ const postUrlPrefix = url("/posts/");
       }
       
       if (isToday) {
-        classes.push("ring-2 ring-[var(--primary)]");
+        classes.push("ring-2 ring-(--primary)");
       }
       
       return `
@@ -257,8 +376,8 @@ const postUrlPrefix = url("/posts/");
           data-has-post="${hasPost}"
         >
           ${day || ''}
-          ${hasPost ? '<span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--primary)]"></span>' : ''}
-          ${hasPost && count > 1 ? `<span class="absolute top-0 right-0 text-[10px] text-[var(--primary)] font-bold">${count}</span>` : ''}
+          ${hasPost ? '<span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-(--primary)"></span>' : ''}
+          ${hasPost && count > 1 ? `<span class="absolute top-0 right-0 text-[10px] text-(--primary) font-bold">${count}</span>` : ''}
         </div>
       `;
     }).join('');
@@ -293,15 +412,15 @@ const postUrlPrefix = url("/posts/");
       const isCurrent = index === displayMonth;
       const hasPost = monthsWithPosts.has(index);
       const classes = [
-        "p-2 text-center text-sm rounded cursor-pointer hover:bg-[var(--btn-plain-bg-hover)] transition-colors relative"
+        "p-2 text-center text-sm rounded-sm cursor-pointer hover:bg-(--btn-plain-bg-hover) transition-colors relative"
       ];
       if (isCurrent) {
-        classes.push("text-[var(--primary)] font-bold bg-[var(--btn-plain-bg-hover)]");
+        classes.push("text-(--primary) font-bold bg-(--btn-plain-bg-hover)");
       } else {
         classes.push("text-neutral-700 dark:text-neutral-300");
       }
       
-      const dotHtml = hasPost ? '<span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--primary)]"></span>' : '';
+      const dotHtml = hasPost ? '<span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-(--primary)"></span>' : '';
       
       return `<div class="${classes.join(' ')}" data-month="${index}">${name}${dotHtml}</div>`;
     }).join('');
@@ -322,14 +441,14 @@ const postUrlPrefix = url("/posts/");
     container.innerHTML = availableYears.map(year => {
       const isCurrent = year === displayYear;
       const classes = [
-        "p-2 text-center text-sm rounded cursor-pointer hover:bg-[var(--btn-plain-bg-hover)] transition-colors"
+        "p-2 text-center text-sm rounded-sm cursor-pointer hover:bg-(--btn-plain-bg-hover) transition-colors relative"
       ];
       if (isCurrent) {
-        classes.push("text-[var(--primary)] font-bold bg-[var(--btn-plain-bg-hover)]");
+        classes.push("text-(--primary) font-bold bg-(--btn-plain-bg-hover)");
       } else {
         classes.push("text-neutral-700 dark:text-neutral-300");
       }
-      return `<div class="${classes.join(' ')}" data-year="${year}">${year}</div>`;
+      return `<div class="${classes.join(' ')}" data-year="${year}">${year}<span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-(--primary)"></span></div>`;
     }).join('');
 
     container.querySelectorAll('[data-year]').forEach(el => {
@@ -343,15 +462,20 @@ const postUrlPrefix = url("/posts/");
   
   // 显示当月所有文章
   function showMonthlyPosts(currentMonthPosts) {
+    const postsWrapper = document.getElementById('calendar-posts');
     const postsList = document.getElementById('calendar-posts-list');
     const divider = document.getElementById('calendar-posts-divider');
+
+    if (postsWrapper) {
+      postsWrapper.style.display = currentMonthPosts.length > 0 ? 'block' : 'none';
+    }
     
     if (postsList) {
       postsList.innerHTML = currentMonthPosts.map(post => {
         const date = new Date(post.published);
         const dateStr = `${date.getMonth() + 1}-${date.getDate()}`;
         return `
-        <a href="${postUrlPrefix}${post.id}/" class="flex justify-between items-center text-sm text-neutral-700 dark:text-neutral-300 hover:text-[var(--primary)] dark:hover:text-[var(--primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--btn-plain-bg-hover)]">
+        <a href="${postUrlPrefix}${post.id}/" class="flex justify-between items-center text-sm text-neutral-700 dark:text-neutral-300 hover:text-(--primary) dark:hover:text-(--primary) transition-colors px-2 py-1 rounded-sm hover:bg-(--btn-plain-bg-hover)">
           <span class="truncate">${post.title}</span>
           <span class="text-xs text-neutral-500 dark:text-neutral-400 ml-2 whitespace-nowrap">${dateStr}</span>
         </a>
@@ -366,6 +490,7 @@ const postUrlPrefix = url("/posts/");
   
   // 设置日历格子点击事件
   function setupClickHandlers(currentMonthPosts) {
+    const postsWrapper = document.getElementById('calendar-posts');
     const calendarDays = document.querySelectorAll('.calendar-day[data-date]');
     const postsList = document.getElementById('calendar-posts-list');
     const divider = document.getElementById('calendar-posts-divider');
@@ -382,7 +507,7 @@ const postUrlPrefix = url("/posts/");
         // 切换选中状态
         if (currentSelectedDay === dayElement) {
           // 取消选中，恢复显示当月所有文章
-          dayElement.classList.remove('bg-[var(--primary)]', 'bg-opacity-10');
+          dayElement.classList.remove('calendar-day-selected');
           currentSelectedDay = null;
           showMonthlyPosts(currentMonthPosts);
           return;
@@ -390,23 +515,27 @@ const postUrlPrefix = url("/posts/");
         
         // 移除之前选中的样式
         if (currentSelectedDay) {
-          currentSelectedDay.classList.remove('bg-[var(--primary)]', 'bg-opacity-10');
+          currentSelectedDay.classList.remove('calendar-day-selected');
         }
         
         // 添加选中样式
-        dayElement.classList.add('bg-[var(--primary)]', 'bg-opacity-10');
+        dayElement.classList.add('calendar-day-selected');
         currentSelectedDay = dayElement;
         
         // 获取该日期的文章
         const posts = postDateMap[dateKey] || [];
         
         if (posts.length > 0 && postsList) {
+          if (postsWrapper) {
+            postsWrapper.style.display = 'block';
+          }
+
           // 渲染文章列表
           postsList.innerHTML = posts.map(post => {
             const date = new Date(post.published);
             const dateStr = `${date.getMonth() + 1}-${date.getDate()}`;
             return `
-            <a href="${postUrlPrefix}${post.id}/" class="flex justify-between items-center text-sm text-neutral-700 dark:text-neutral-300 hover:text-[var(--primary)] dark:hover:text-[var(--primary)] transition-colors px-2 py-1 rounded hover:bg-[var(--btn-plain-bg-hover)]">
+            <a href="${postUrlPrefix}${post.id}/" class="flex justify-between items-center text-sm text-neutral-700 dark:text-neutral-300 hover:text-(--primary) dark:hover:text-(--primary) transition-colors px-2 py-1 rounded-sm hover:bg-(--btn-plain-bg-hover)">
               <span class="truncate">${post.title}</span>
               <span class="text-xs text-neutral-500 dark:text-neutral-400 ml-2 whitespace-nowrap">${dateStr}</span>
             </a>
@@ -478,19 +607,42 @@ const postUrlPrefix = url("/posts/");
   // 页面加载时渲染日历
   initCalendar();
 
-  // 页面切换时重新渲染
-  document.addEventListener("swup:contentReplaced", () => {
-    setTimeout(initCalendar, 100);
-  });
+  // 防止 Swup 切页重跑脚本时重复注册监听器（此脚本的 data-swup-ignore-script 在 define:vars 构建时可能丢失）
+  if (!window.__calendarInit) {
+    window.__calendarInit = true;
+    // 页面切换时重新渲染
+    document.addEventListener("swup:contentReplaced", () => {
+      setTimeout(initCalendar, 100);
+    });
+  }
 </script>
 
 <style>
-  .calendar-day {
+  :global(.calendar-day) {
     transition: all 0.2s ease;
     min-height: 32px;
   }
-  
-  .calendar-day[data-has-post="true"]:hover {
+
+  :global(.calendar-day[data-has-post="true"]:hover) {
     transform: translateY(-2px);
+  }
+
+  /* 自定义选中日期样式 */
+  :global(.calendar-day-selected) {
+    background-color: var(--btn-regular-bg);
+    border-radius: 0.25rem;
+  }
+
+  /* 热力图单元格 */
+  :global(.heatmap-cell) {
+    cursor: pointer;
+    min-width: 0;
+    width: 85%;
+    aspect-ratio: 1;
+    margin: auto;
+    transition: box-shadow 0.15s ease;
+  }
+  :global(.heatmap-cell:hover) {
+    box-shadow: 0 0 1px 1.5px var(--primary, oklch(0.55 0.15 250));
   }
 </style>
