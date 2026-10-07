@@ -2,6 +2,10 @@ import Key from "../i18nKey";
 import type { Translation } from "../translation";
 
 export const en: Translation = {
+	[Key.bilibiliFetchError]: "Could not load Bilibili collections",
+	[Key.bilibiliFetchErrorDesc]: "Collections are temporarily unavailable. Please try again later.",
+	[Key.bilibiliPrivateList]: "The anime/drama list is private. Make it public in Bilibili space settings, then rebuild the site.",
+	[Key.bangumiRefreshFailed]: "Some categories could not refresh. Existing entries are retained; please refresh later.",
 	[Key.home]: "Home",
 	[Key.about]: "About",
 	[Key.archive]: "Archive",
@@ -540,4 +544,21 @@ export const en: Translation = {
 	[Key.exitImmersiveReading]: "Exit Immersive Reading",
 	[Key.tocExpand]: "Expand directory",
 	[Key.tocCollapse]: "Collapse directory",
+
+	// Windows presence
+	[Key.presence]: "Right Now",
+	[Key.presenceOnline]: "Online",
+	[Key.presenceAway]: "Away",
+	[Key.presenceOffline]: "Offline",
+	[Key.presenceConnecting]: "Connecting…",
+	[Key.presenceUnavailable]: "Status unavailable",
+	[Key.presenceAwayMessage]: "Stepped away, back soon",
+	[Key.presenceOfflineMessage]: "Away from the computer",
+	[Key.presenceDefaultActivity]: "At the computer",
+	[Key.presenceMusicPlaying]: "NetEase Cloud Music · Playing",
+	[Key.presenceMusicPaused]: "NetEase Cloud Music · Paused",
+	[Key.presenceUnknownArtist]: "Unknown artist",
+	[Key.presenceUpdatedJustNow]: "Updated just now",
+	[Key.presenceUpdatedMinutesAgo]: "Updated {minutes} min ago",
+	[Key.presenceUpdatedLongAgo]: "Last seen over an hour ago",
 };

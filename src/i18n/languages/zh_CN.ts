@@ -2,6 +2,10 @@ import Key from "../i18nKey";
 import type { Translation } from "../translation";
 
 export const zh_CN: Translation = {
+	[Key.bilibiliFetchError]: "哔哩哔哩追番加载失败",
+	[Key.bilibiliFetchErrorDesc]: "暂时无法获取追番列表，请稍后重试。",
+	[Key.bilibiliPrivateList]: "追番/追剧列表未公开，请在哔哩哔哩个人空间调整隐私设置后重新构建网站。",
+	[Key.bangumiRefreshFailed]: "部分分类更新失败，已保留现有内容，请稍后刷新重试。",
 	[Key.home]: "主页",
 	[Key.about]: "关于我",
 	[Key.archive]: "归档",
@@ -527,4 +531,21 @@ export const zh_CN: Translation = {
 	[Key.exitImmersiveReading]: "退出沉浸阅读",
 	[Key.tocExpand]: "展开目录",
 	[Key.tocCollapse]: "折叠目录",
+
+	// Windows 实时状态
+	[Key.presence]: "此刻",
+	[Key.presenceOnline]: "在线",
+	[Key.presenceAway]: "暂离",
+	[Key.presenceOffline]: "离线",
+	[Key.presenceConnecting]: "正在连接…",
+	[Key.presenceUnavailable]: "状态暂不可用",
+	[Key.presenceAwayMessage]: "离开一会儿，稍后回来",
+	[Key.presenceOfflineMessage]: "暂时不在电脑旁",
+	[Key.presenceDefaultActivity]: "正在使用电脑",
+	[Key.presenceMusicPlaying]: "网易云 · 正在听",
+	[Key.presenceMusicPaused]: "网易云 · 已暂停",
+	[Key.presenceUnknownArtist]: "未知歌手",
+	[Key.presenceUpdatedJustNow]: "刚刚更新",
+	[Key.presenceUpdatedMinutesAgo]: "{minutes} 分钟前更新",
+	[Key.presenceUpdatedLongAgo]: "最后在线已超过一小时",
 };

@@ -2,6 +2,10 @@ import Key from "../i18nKey";
 import type { Translation } from "../translation";
 
 export const ko: Translation = {
+	[Key.bilibiliFetchError]: "Bilibili 목록을 불러오지 못했습니다",
+	[Key.bilibiliFetchErrorDesc]: "목록을 가져올 수 없습니다. 잠시 후 다시 시도해 주세요.",
+	[Key.bilibiliPrivateList]: "목록이 비공개입니다. Bilibili 공개 설정을 변경한 후 사이트를 다시 빌드해 주세요.",
+	[Key.bangumiRefreshFailed]: "일부 분류를 갱신하지 못했습니다. 기존 항목은 유지됩니다. 나중에 새로고침해 주세요.",
 	[Key.home]: "홈",
 	[Key.about]: "소개",
 	[Key.archive]: "아카이브",
@@ -537,4 +541,21 @@ export const ko: Translation = {
 	[Key.exitImmersiveReading]: "몰입형 읽기 종료",
 	[Key.tocExpand]: "목차 펼치기",
 	[Key.tocCollapse]: "목차 접기",
+
+	// Windows 실시간 상태
+	[Key.presence]: "지금",
+	[Key.presenceOnline]: "온라인",
+	[Key.presenceAway]: "자리 비움",
+	[Key.presenceOffline]: "오프라인",
+	[Key.presenceConnecting]: "연결 중…",
+	[Key.presenceUnavailable]: "상태를 불러올 수 없습니다",
+	[Key.presenceAwayMessage]: "잠시 자리를 비웠습니다",
+	[Key.presenceOfflineMessage]: "컴퓨터 앞에 없습니다",
+	[Key.presenceDefaultActivity]: "컴퓨터 사용 중",
+	[Key.presenceMusicPlaying]: "NetEase Cloud Music · 재생 중",
+	[Key.presenceMusicPaused]: "NetEase Cloud Music · 일시정지",
+	[Key.presenceUnknownArtist]: "알 수 없는 아티스트",
+	[Key.presenceUpdatedJustNow]: "방금 업데이트됨",
+	[Key.presenceUpdatedMinutesAgo]: "{minutes}분 전 업데이트",
+	[Key.presenceUpdatedLongAgo]: "마지막 접속이 1시간 이상 지났습니다",
 };

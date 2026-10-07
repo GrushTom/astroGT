@@ -2,6 +2,10 @@ import Key from "../i18nKey";
 import type { Translation } from "../translation";
 
 export const ja: Translation = {
+	[Key.bilibiliFetchError]: "Bilibili のリストを読み込めませんでした",
+	[Key.bilibiliFetchErrorDesc]: "リストを取得できません。後でもう一度お試しください。",
+	[Key.bilibiliPrivateList]: "視聴リストが非公開です。Bilibili の公開設定を変更してサイトを再ビルドしてください。",
+	[Key.bangumiRefreshFailed]: "一部のカテゴリを更新できませんでした。既存の内容を保持しています。後で再読み込みしてください。",
 	[Key.home]: "ホーム",
 	[Key.about]: "について",
 	[Key.archive]: "アーカイブ",
@@ -537,4 +541,21 @@ export const ja: Translation = {
 	[Key.exitImmersiveReading]: "没入型リーディングを終了する",
 	[Key.tocExpand]: "目錄を開く",
 	[Key.tocCollapse]: "目錄をたたむ",
+
+	// Windows リアルタイムステータス
+	[Key.presence]: "いま",
+	[Key.presenceOnline]: "オンライン",
+	[Key.presenceAway]: "離席中",
+	[Key.presenceOffline]: "オフライン",
+	[Key.presenceConnecting]: "接続中…",
+	[Key.presenceUnavailable]: "ステータスを取得できません",
+	[Key.presenceAwayMessage]: "少し離席しています",
+	[Key.presenceOfflineMessage]: "PC の前にいません",
+	[Key.presenceDefaultActivity]: "PC を使用中",
+	[Key.presenceMusicPlaying]: "NetEase Cloud Music · 再生中",
+	[Key.presenceMusicPaused]: "NetEase Cloud Music · 一時停止",
+	[Key.presenceUnknownArtist]: "不明なアーティスト",
+	[Key.presenceUpdatedJustNow]: "たった今更新",
+	[Key.presenceUpdatedMinutesAgo]: "{minutes} 分前に更新",
+	[Key.presenceUpdatedLongAgo]: "最終オンラインから 1 時間以上",
 };

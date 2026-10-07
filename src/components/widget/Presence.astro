@@ -1,0 +1,21 @@
+---
+import WidgetLayout from "@/components/common/WidgetLayout.astro";
+import PresenceCard from "@/components/features/PresenceCard.svelte";
+import { presenceConfig } from "@/config";
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
+import type { WidgetComponentConfig } from "@/types/config";
+
+interface Props {
+	class?: string;
+	style?: string;
+	widgetConfig?: WidgetComponentConfig;
+}
+const { class: className, style, widgetConfig } = Astro.props;
+---
+
+{presenceConfig.enable && presenceConfig.endpoint && (
+	<WidgetLayout id="presence-widget" name={i18n(I18nKey.presence)} class={className} style={style} showTitle={widgetConfig?.showTitle !== false}>
+		<PresenceCard client:load endpoint={presenceConfig.endpoint} pollInterval={presenceConfig.pollInterval} />
+	</WidgetLayout>
+)}

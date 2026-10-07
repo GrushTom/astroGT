@@ -62,11 +62,10 @@ function getTypeColor(seasonType: number): string {
 			<img
 				src={anime.poster}
 				alt={anime.title}
-				class="h-full w-full object-cover transition-all duration-500 group-hover:scale-110 opacity-0"
+				class="relative h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
 				loading="eager"
 				decoding="async"
 				referrerpolicy="no-referrer"
-				crossorigin="anonymous"
 				onload={handleLoad}
 			/>
 		{:else}

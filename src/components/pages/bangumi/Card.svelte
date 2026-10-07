@@ -1,4 +1,5 @@
 <script lang="ts">
+import { untrack } from "svelte";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import type { UserSubjectCollection } from "@/types/bangumi";
@@ -16,7 +17,7 @@ interface Props {
 const {
 	item,
 	loadImage = false,
-	subjectBaseUrl = "https://bangumi.one/subject/",
+	subjectBaseUrl = "https://bgm.tv/subject/",
 	nsfw = "off",
 }: Props = $props();
 
@@ -82,7 +83,7 @@ const score = $derived(item.subject?.score || 0);
 const imageNsfw = $derived(nsfw === "blur" && isBangumiNsfw(item));
 
 // SSR 阶段用第一个 URL，客户端挂载后跳过已知失败的 URL
-let initialSrc = $state("");
+let initialSrc = $state(untrack(() => coverFallbacks[0] || ""));
 
 $effect(() => {
 	const srcs = coverFallbacks;
@@ -126,7 +127,7 @@ function handleError(e: Event) {
         src={loadImage ? initialSrc : undefined}
         data-src={loadImage ? undefined : initialSrc}
         alt={title}
-        class="w-full h-full object-cover pointer-events-none opacity-0 transition-all duration-500 ease-out group-hover:scale-105"
+        class="relative w-full h-full object-cover pointer-events-none transition-all duration-500 ease-out group-hover:scale-105"
         style={imageNsfw ? "filter: blur(20px)" : undefined}
         loading="lazy"
         decoding="async"

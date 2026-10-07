@@ -92,9 +92,8 @@ function getTypeColor(seasonType: number): string {
 						<img
 							src={anime.poster}
 							alt={anime.title}
-							class="h-full w-full object-cover opacity-0 transition-opacity duration-500"
+							class="relative h-full w-full object-cover transition-opacity duration-500"
 							referrerpolicy="no-referrer"
-							crossorigin="anonymous"
 							onload={(e) => {
 								const img = e.currentTarget as HTMLElement;
 								img.style.opacity = '1';

@@ -229,6 +229,10 @@ enum I18nKey {
 	bilibili = "bilibili",
 	bilibiliSubtitle = "bilibiliSubtitle",
 	bilibiliNotConfigured = "bilibiliNotConfigured",
+	bilibiliFetchError = "bilibiliFetchError",
+	bilibiliFetchErrorDesc = "bilibiliFetchErrorDesc",
+	bilibiliPrivateList = "bilibiliPrivateList",
+	bangumiRefreshFailed = "bangumiRefreshFailed",
 	bilibiliNotConfiguredDesc = "bilibiliNotConfiguredDesc",
 
 	// 追番 - 公共组件
@@ -521,6 +525,23 @@ enum I18nKey {
 	exitImmersiveReading = "exitImmersiveReading",
 	tocExpand = "tocExpand",
 	tocCollapse = "tocCollapse",
+
+	// Windows 实时状态 (presence)
+	presence = "presence",
+	presenceOnline = "presenceOnline",
+	presenceAway = "presenceAway",
+	presenceOffline = "presenceOffline",
+	presenceConnecting = "presenceConnecting",
+	presenceUnavailable = "presenceUnavailable",
+	presenceAwayMessage = "presenceAwayMessage",
+	presenceOfflineMessage = "presenceOfflineMessage",
+	presenceDefaultActivity = "presenceDefaultActivity",
+	presenceMusicPlaying = "presenceMusicPlaying",
+	presenceMusicPaused = "presenceMusicPaused",
+	presenceUnknownArtist = "presenceUnknownArtist",
+	presenceUpdatedJustNow = "presenceUpdatedJustNow",
+	presenceUpdatedMinutesAgo = "presenceUpdatedMinutesAgo",
+	presenceUpdatedLongAgo = "presenceUpdatedLongAgo",
 }
 
 export default I18nKey;

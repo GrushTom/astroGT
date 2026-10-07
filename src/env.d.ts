@@ -6,6 +6,8 @@ declare global {
 		readonly MEILI_MASTER_KEY: string;
 		// 视图设置面板总开关，可在部署平台配置（true / 1 / on / yes 开启）
 		readonly PUBLIC_DISPLAY_SETTINGS?: string;
+		// 实时状态 Worker 的公开 /status 地址，只填读取地址，不要填上报密钥
+		readonly PUBLIC_PRESENCE_ENDPOINT?: string;
 	}
 
 	interface ITOCManager {

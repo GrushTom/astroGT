@@ -8,7 +8,7 @@ import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import "@/styles/pages/common.css";
 import "@/styles/pages/media-grid.css";
 import type { StandardizedAnime } from "@/types/bilibili";
-import { fetchBilibiliList } from "@/utils/bilibili-utils";
+import { BilibiliFetchError, fetchBilibiliList } from "@/utils/bilibili-utils";
 import { formatDateI18n } from "@/utils/date-utils";
 
 // 检查页面是否启用
@@ -25,11 +25,15 @@ const isConfigured = !!BILIBILI_UID && BILIBILI_UID.trim() !== "";
 
 // 获取 Bilibili 追番 + 追剧数据
 let animeList: StandardizedAnime[] = [];
+let fetchFailed = false;
+let isPrivate = false;
 if (BILIBILI_UID) {
 	try {
 		animeList = await fetchBilibiliList(BILIBILI_UID);
 		console.log(`[Bilibili] Page data: ${animeList.length} items`);
 	} catch (error) {
+		fetchFailed = true;
+		isPrivate = error instanceof BilibiliFetchError && error.code === 53013;
 		console.error("[Bilibili] Failed to fetch data:", error);
 	}
 }
@@ -78,6 +82,11 @@ const bilibiliAverageRating =
             <p class="text-black/60 dark:text-white/60 mb-4 max-w-md mx-auto">
               {i18n(I18nKey.bilibiliNotConfiguredDesc)}
             </p>
+          </div>
+        ) : fetchFailed ? (
+          <div class="text-center py-16" role="status">
+            <h2 class="text-xl font-semibold text-black/80 dark:text-white/80 mb-3">{i18n(I18nKey.bilibiliFetchError)}</h2>
+            <p class="text-black/60 dark:text-white/60 max-w-md mx-auto">{i18n(isPrivate ? I18nKey.bilibiliPrivateList : I18nKey.bilibiliFetchErrorDesc)}</p>
           </div>
         ) : (
           <>

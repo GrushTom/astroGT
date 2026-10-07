@@ -16,39 +16,70 @@ export interface BilibiliItem {
 const BILIBILI_API = "https://api.bilibili.com/x/space/bangumi/follow/list";
 const PAGE_SIZE = 30;
 
+export class BilibiliFetchError extends Error {
+	constructor(
+		public readonly code: number,
+		message: string,
+	) {
+		super(message);
+		this.name = "BilibiliFetchError";
+	}
+}
+
+async function fetchPage(
+	uid: string,
+	type: number,
+	page: number,
+): Promise<{ list: BilibiliItem[]; total: number }> {
+	const params = new URLSearchParams({
+		type: String(type),
+		vmid: uid,
+		pn: String(page),
+		ps: String(PAGE_SIZE),
+	});
+	const response = await fetch(`${BILIBILI_API}?${params}`, {
+		headers: {
+			"User-Agent":
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+			Referer: `https://space.bilibili.com/${encodeURIComponent(uid)}/`,
+			Accept: "application/json",
+		},
+		signal: AbortSignal.timeout(15_000),
+	});
+	if (!response.ok)
+		throw new BilibiliFetchError(
+			response.status,
+			`Bilibili HTTP ${response.status}`,
+		);
+	const result = await response.json();
+	if (result.code !== 0)
+		throw new BilibiliFetchError(
+			result.code,
+			result.message || "Bilibili API error",
+		);
+	if (
+		!Array.isArray(result.data?.list) ||
+		!Number.isFinite(result.data?.total)
+	) {
+		throw new BilibiliFetchError(-1, "Invalid Bilibili response");
+	}
+	return result.data;
+}
+
 /** 获取指定类型的全部追番数据 */
 async function fetchBilibiliByType(
 	uid: string,
 	type: number,
 ): Promise<BilibiliItem[]> {
 	const items: BilibiliItem[] = [];
-	// 第一页，获取 total
-	const firstRes = await fetch(
-		`${BILIBILI_API}?type=${type}&vmid=${uid}&pn=1&ps=${PAGE_SIZE}`,
-	);
-	const firstJson = await firstRes.json();
-	if (firstJson.code !== 0 || !firstJson.data?.list?.length) return items;
-
-	items.push(...firstJson.data.list);
-	const total = firstJson.data.total || items.length;
+	const first = await fetchPage(uid, type, 1);
+	items.push(...first.list);
+	const total = first.total;
 	const totalPages = Math.ceil(total / PAGE_SIZE);
-
-	// 并发请求剩余页
-	if (totalPages > 1) {
-		const promises: Promise<BilibiliItem[]>[] = [];
-		for (let pn = 2; pn <= totalPages; pn++) {
-			promises.push(
-				fetch(
-					`${BILIBILI_API}?type=${type}&vmid=${uid}&pn=${pn}&ps=${PAGE_SIZE}`,
-				)
-					.then((r) => r.json())
-					.then((j) => j.data?.list || []),
-			);
-		}
-		const remaining = await Promise.all(promises);
-		for (const batch of remaining) {
-			items.push(...batch);
-		}
+	// 顺序分页，避免大量并发；分页失败不能伪装成完整列表。
+	for (let page = 2; page <= totalPages; page++) {
+		const batch = await fetchPage(uid, type, page);
+		items.push(...batch.list);
 	}
 	return items;
 }
@@ -65,7 +96,10 @@ export async function fetchBilibiliList(
 		`[Bilibili] Fetched ${animeItems.length + dramaItems.length} items (anime: ${animeItems.length}, drama: ${dramaItems.length}).`,
 	);
 
-	return [...animeItems, ...dramaItems].map((item) => ({
+	const unique = new Map(
+		[...animeItems, ...dramaItems].map((item) => [item.media_id, item]),
+	);
+	return [...unique.values()].map((item) => ({
 		id: item.media_id,
 		title: item.title,
 		originalTitle: item.title,

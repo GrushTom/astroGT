@@ -1,11 +1,12 @@
 <script lang="ts">
-import { onMount } from "svelte";
+import { onMount, untrack } from "svelte";
 import GridSkeleton from "@/components/common/GridSkeleton.svelte";
 import TabNav from "@/components/common/TabNav.svelte";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import type { UserSubjectCollection } from "@/types/bangumi";
 import type { NsfwMode } from "@/types/nsfw";
+import { fetchBangumiCollections } from "@/utils/bangumi-utils";
 import { filterNsfw, isBangumiNsfw } from "@/utils/nsfw-utils";
 import BangumiSection from "./BangumiSection.svelte";
 
@@ -41,34 +42,29 @@ const nsfwMode = $derived(nsfw ?? fetchConfig?.nsfw ?? "off");
 const isDynamic = $derived(!!fetchConfig);
 
 // 状态
-let activeTab = $state("");
+let activeTab = $state(
+	untrack(() => initialActiveTab || staticTabs?.[0]?.id || ""),
+);
 let fetchLoading = $state(false);
 const loading = $derived(isDynamic && fetchLoading);
 let error = $state(false);
 
-// 初始化 activeTab / 当 fetchConfig 变化时重置状态
-$effect(() => {
-	if (initialActiveTab) {
-		activeTab = initialActiveTab;
-	}
-	if (fetchConfig) {
-		fetchLoading = true;
-		error = false;
-	}
-});
+let refreshFailed = $state(false);
 let errorTitle = $state("");
 let errorDesc = $state("");
 let updateTimestamp = $state("");
 
 // 动态模式的数据
 let dynamicTabs = $state<Array<{ id: string; name: string; count: number }>>(
-	[],
+	untrack(() => staticTabs || []),
 );
-let dynamicData = $state<Record<string, UserSubjectCollection[]>>({});
+let dynamicData = $state<Record<string, UserSubjectCollection[]>>(
+	untrack(() => staticData || {}),
+);
 
 // 合并后的数据
-const tabs = $derived(staticTabs || dynamicTabs);
-const bangumiData = $derived(staticData || dynamicData);
+const tabs = $derived(isDynamic ? dynamicTabs : staticTabs || []);
+const bangumiData = $derived(isDynamic ? dynamicData : staticData || {});
 
 const categoryMap: Record<string, { name: string; subjectType: number }> = {
 	book: { name: i18n(I18nKey.bangumiCategoryBook), subjectType: 1 },
@@ -82,37 +78,11 @@ function handleTabChange(tabId: string) {
 	activeTab = tabId;
 }
 
-async function fetchCategory(
-	apiUrl: string,
-	username: string,
-	subjectType: number,
-	pagination: { limit: number; delay: number; maxTotal: number },
-): Promise<UserSubjectCollection[]> {
-	const { limit, delay, maxTotal } = pagination;
-	let offset = 0;
-	const allItems: UserSubjectCollection[] = [];
-
-	while (true) {
-		if (maxTotal > 0 && allItems.length >= maxTotal) break;
-		const url = `${apiUrl}/v0/users/${username}/collections?subject_type=${subjectType}&limit=${limit}&offset=${offset}`;
-		const resp = await fetch(url, { headers: { Accept: "application/json" } });
-		if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-		const data = await resp.json();
-		const batch: UserSubjectCollection[] = data.data || [];
-		if (batch.length > 0) {
-			allItems.push(...batch);
-			offset += limit;
-			if (batch.length < limit) break;
-			await new Promise((r) => setTimeout(r, delay));
-		} else {
-			break;
-		}
-	}
-	return allItems;
-}
-
 async function loadDynamicData() {
-	if (!fetchConfig) return;
+	if (!fetchConfig || fetchLoading) return;
+	fetchLoading = true;
+	error = false;
+	refreshFailed = false;
 	const { username, apiUrl, categories, categoryOrder, pagination } =
 		fetchConfig;
 
@@ -138,7 +108,7 @@ async function loadDynamicData() {
 		const info = categoryMap[catKey];
 		if (!info) continue;
 		try {
-			const data = await fetchCategory(
+			const data = await fetchBangumiCollections(
 				apiUrl,
 				username,
 				info.subjectType,
@@ -150,25 +120,39 @@ async function loadDynamicData() {
 			newTabs.push({ id: catKey, name: info.name, count: filtered.length });
 		} catch (e) {
 			console.error(`[Bangumi] Failed to fetch ${catKey} data:`, e);
-			fetchLoading = false;
-			error = true;
-			errorTitle = i18n(I18nKey.bangumiFetchError);
-			errorDesc = i18n(I18nKey.bangumiFetchErrorDesc);
-			return;
+			refreshFailed = true;
+			if (Object.hasOwn(dynamicData, catKey)) {
+				newData[catKey] = dynamicData[catKey];
+				newTabs.push({
+					id: catKey,
+					name: info.name,
+					count: dynamicData[catKey].length,
+				});
+			}
 		}
 	}
 
 	if (newTabs.length === 0 || newTabs.every((t) => t.count === 0)) {
 		fetchLoading = false;
 		error = true;
-		errorTitle = i18n(I18nKey.bangumiNoData);
-		errorDesc = i18n(I18nKey.bangumiNoDataDescription);
+		errorTitle = i18n(
+			refreshFailed ? I18nKey.bangumiFetchError : I18nKey.bangumiNoData,
+		);
+		errorDesc = i18n(
+			refreshFailed
+				? I18nKey.bangumiRefreshFailed
+				: I18nKey.bangumiNoDataDescription,
+		);
+		dynamicTabs = newTabs;
+		dynamicData = newData;
 		return;
 	}
 
 	dynamicTabs = newTabs;
 	dynamicData = newData;
-	activeTab = newTabs[0].id;
+	if (!newTabs.some((tab) => tab.id === activeTab && tab.count > 0)) {
+		activeTab = newTabs.find((tab) => tab.count > 0)?.id || newTabs[0].id;
+	}
 	fetchLoading = false;
 
 	const now = new Date();
@@ -199,7 +183,11 @@ onMount(async () => {
 });
 </script>
 
-{#if isDynamic && loading}
+{#if refreshFailed && tabs.some((tab) => tab.count > 0)}
+  <p class="mb-4 text-sm text-neutral-500" role="status">{i18n(I18nKey.bangumiRefreshFailed)}</p>
+{/if}
+
+{#if isDynamic && loading && tabs.length === 0}
   <GridSkeleton />
 {:else if isDynamic && error}
   <div class="text-center py-16">

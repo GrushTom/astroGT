@@ -9,6 +9,7 @@ export type WidgetComponentType =
 	| "stats"
 	| "calendar"
 	| "music"
+	| "presence"
 	| "siteInfo"
 	| "dynamic";
 

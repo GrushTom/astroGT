@@ -2,6 +2,10 @@ import Key from "../i18nKey";
 import type { Translation } from "../translation";
 
 export const ru: Translation = {
+	[Key.bilibiliFetchError]: "Не удалось загрузить список Bilibili",
+	[Key.bilibiliFetchErrorDesc]: "Список временно недоступен. Повторите попытку позже.",
+	[Key.bilibiliPrivateList]: "Список закрыт. Откройте его в настройках Bilibili и пересоберите сайт.",
+	[Key.bangumiRefreshFailed]: "Не удалось обновить некоторые категории. Существующие записи сохранены; обновите страницу позже.",
 	[Key.home]: "Главная",
 	[Key.about]: "О нас",
 	[Key.archive]: "Архив",
@@ -541,4 +545,21 @@ export const ru: Translation = {
 	[Key.exitImmersiveReading]: "Выйти из режима чтения",
 	[Key.tocExpand]: "Развернуть оглавление",
 	[Key.tocCollapse]: "Свернуть оглавление",
+
+	// Статус в реальном времени (Windows)
+	[Key.presence]: "Сейчас",
+	[Key.presenceOnline]: "В сети",
+	[Key.presenceAway]: "Отошёл",
+	[Key.presenceOffline]: "Не в сети",
+	[Key.presenceConnecting]: "Подключение…",
+	[Key.presenceUnavailable]: "Статус недоступен",
+	[Key.presenceAwayMessage]: "Отошёл, скоро вернусь",
+	[Key.presenceOfflineMessage]: "Отошёл от компьютера",
+	[Key.presenceDefaultActivity]: "За компьютером",
+	[Key.presenceMusicPlaying]: "NetEase Cloud Music · Играет",
+	[Key.presenceMusicPaused]: "NetEase Cloud Music · Пауза",
+	[Key.presenceUnknownArtist]: "Неизвестный исполнитель",
+	[Key.presenceUpdatedJustNow]: "Обновлено только что",
+	[Key.presenceUpdatedMinutesAgo]: "Обновлено {minutes} мин назад",
+	[Key.presenceUpdatedLongAgo]: "Был(а) в сети более часа назад",
 };

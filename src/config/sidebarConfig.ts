@@ -35,6 +35,12 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 	// specificConfig 组件专属配置
 	leftComponents: [
 		{
+			type: "presence",
+			enable: true,
+			position: "top",
+			showOnPostPage: true,
+		},
+		{
 			// 组件类型：用户资料组件
 			type: "profile",
 			// 是否启用该组件

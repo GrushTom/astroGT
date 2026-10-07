@@ -1,0 +1,20 @@
+{
+  "code.exe": "正在写代码",
+  "cursor.exe": "正在写代码",
+  "devenv.exe": "正在写代码",
+  "idea64.exe": "正在写代码",
+  "pycharm64.exe": "正在写代码",
+  "codex.exe": "正在写代码",
+  "windowsterminal.exe": "正在使用终端",
+  "powershell.exe": "正在使用终端",
+  "pwsh.exe": "正在使用终端",
+  "obsidian.exe": "正在整理笔记",
+  "notion.exe": "正在整理笔记",
+  "winword.exe": "正在写作",
+  "photoshop.exe": "正在创作",
+  "blender.exe": "正在创作",
+  "cloudmusic.exe": "正在听音乐",
+  "msedge.exe": "正在浏览网页",
+  "chrome.exe": "正在浏览网页",
+  "firefox.exe": "正在浏览网页"
+}

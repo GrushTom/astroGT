@@ -7,10 +7,8 @@ import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import "@/styles/pages/common.css";
 import "@/styles/pages/media-grid.css";
-import type {
-	UserSubjectCollection,
-	UserSubjectCollectionResponse,
-} from "@/types/bangumi";
+import type { UserSubjectCollection } from "@/types/bangumi";
+import { fetchBangumiCollections } from "@/utils/bangumi-utils";
 import { formatDateI18n } from "@/utils/date-utils";
 import { filterNsfw, isBangumiNsfw } from "@/utils/nsfw-utils";
 
@@ -28,9 +26,9 @@ const buildTime = formatDateI18n(new Date());
 const bangumiConfig = {
 	username: siteConfig.bangumi?.userId, // 在这里配置你的Bangumi用户名
 	mode: (siteConfig.bangumi?.mode || "static") as "static" | "dynamic",
-	apiUrl: siteConfig.bangumi?.apiUrl || "https://api.bangumi.one",
+	apiUrl: siteConfig.bangumi?.apiUrl || "https://api.bgm.tv",
 	subjectBaseUrl:
-		siteConfig.bangumi?.subjectBaseUrl || "https://bangumi.one/subject/",
+		siteConfig.bangumi?.subjectBaseUrl || "https://bgm.tv/subject/",
 	// 从配置文件中读取各分类是否启用，若未配置则使用默认值
 	categories: {
 		book: siteConfig.bangumi?.categories?.book ?? true,
@@ -71,75 +69,18 @@ const categoryMap = {
 
 // 获取Bangumi数据的函数 - 支持分页获取所有数据
 async function fetchBangumiData(username: string, subjectType: number) {
-	const { limit, delay, maxTotal } = bangumiConfig.pagination;
-	let offset = 0;
-	let allData: UserSubjectCollection[] = [];
-	let hasMore = true;
-
-	// 开发模式下只获取一页数据，加快调试速度
-	const isDev = import.meta.env.DEV;
-	const maxPages = isDev ? 1 : 0; // 0 表示不限制
-
-	console.log(
-		`[Bangumi] ${isDev ? "🔧 Dev mode" : "🌐 Prod mode"} - fetching subjectType ${subjectType} data for user ${username}...`,
+	return fetchBangumiCollections(
+		bangumiConfig.apiUrl,
+		username,
+		subjectType,
+		{
+			...bangumiConfig.pagination,
+			maxTotal: import.meta.env.DEV ? 50 : bangumiConfig.pagination.maxTotal,
+		},
+		{ "User-Agent": "GrushTom/Firefly (https://blog.grushtom.com)" },
 	);
-
-	while (hasMore) {
-		// 开发模式限制：只获取一页
-		if (isDev && maxPages > 0 && allData.length >= limit * maxPages) {
-			console.log(`[Bangumi] Dev mode: fetched ${maxPages} page(s), stopping`);
-			break;
-		}
-
-		// 检查是否超过最大获取限制
-		if (maxTotal > 0 && allData.length >= maxTotal) {
-			console.log(`[Bangumi] Reached max fetch limit ${maxTotal}, stopping`);
-			break;
-		}
-
-		const url = `${bangumiConfig.apiUrl}/v0/users/${username}/collections?subject_type=${subjectType}&limit=${limit}&offset=${offset}`;
-
-		console.log(`[Bangumi] Fetching data: ${url} (fetched: ${allData.length})`);
-
-		const response = await fetch(url, {
-			headers: {
-				"User-Agent": "YuuOuRou Blog",
-				Accept: "application/json",
-			},
-		});
-
-		if (!response.ok) {
-			throw new Error(
-				`[Bangumi] Failed to fetch data (status: ${response.status}): ${url}`,
-			);
-		}
-
-		const data = (await response.json()) as UserSubjectCollectionResponse;
-		const currentBatch = data.data || [];
-
-		if (currentBatch.length > 0) {
-			allData = allData.concat(currentBatch);
-			offset += limit;
-
-			// 如果本次获取的数据少于limit，说明已经是最后一页
-			if (currentBatch.length < limit) {
-				hasMore = false;
-			}
-		} else {
-			hasMore = false;
-		}
-
-		// 添加延迟避免请求过于频繁
-		if (hasMore) {
-			await new Promise((resolve) => setTimeout(resolve, delay));
-		}
-	}
-
-	console.log(`[Bangumi] Fetched ${allData.length} items in total`);
-	return allData;
 }
 
-// 获取所有启用分类的数据
 const bangumiData: Record<string, UserSubjectCollection[]> = {};
 const tabs: Array<{ id: string; name: string; count: number }> = [];
 let fetchFailed = false;
@@ -156,7 +97,7 @@ if (!isUserIdConfigured) {
 	console.log("[Bangumi] 🌐 Fetching data from API (static mode)");
 }
 
-if (!isDynamic) {
+if (isUserIdConfigured) {
 	for (const [categoryKey, enabled] of Object.entries(
 		bangumiConfig.categories,
 	)) {
@@ -190,7 +131,6 @@ if (!isDynamic) {
 					error,
 				);
 				fetchFailed = true;
-				break;
 			}
 		}
 	}
@@ -212,9 +152,10 @@ if (!isDynamic) {
 			return aIndex - bIndex;
 		});
 	}
-} // end if (!isDynamic)
+}
 
-const activeTab = tabs[0]?.id || "anime";
+const activeTab =
+	tabs.find((tab) => tab.count > 0)?.id || tabs[0]?.id || "anime";
 ---
 
 <MainGridLayout title={i18n(I18nKey.bangumi)} description={i18n(I18nKey.bangumiSubtitle)}>
@@ -259,6 +200,9 @@ const activeTab = tabs[0]?.id || "anime";
             <BangumiGrid
               client:load
               subjectBaseUrl={bangumiConfig.subjectBaseUrl}
+              tabs={tabs}
+              initialActiveTab={activeTab}
+              bangumiData={bangumiData}
               fetchConfig={{
                 username: bangumiConfig.username!,
                 apiUrl: bangumiConfig.apiUrl,
@@ -273,7 +217,7 @@ const activeTab = tabs[0]?.id || "anime";
       ) : (
         /* ==================== Static 模式 ==================== */
         <>
-      {fetchFailed ? (
+      {fetchFailed && tabs.length === 0 ? (
         <div class="text-center py-16">
           <div class="inline-flex items-center justify-center w-16 h-16 bg-(--btn-regular-bg) rounded-full mb-6 border border-(--line-divider)">
             <Icon name="material-symbols:error-outline" class="text-[2rem] text-red-500" />

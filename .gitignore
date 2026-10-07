@@ -47,3 +47,9 @@ package/
 .codex*
 .claude
 .mimocode
+
+# Local presence collector and Worker state
+services/presence/.dev.vars*
+services/presence/.wrangler/
+scripts/presence/.venv/
+scripts/presence/__pycache__/

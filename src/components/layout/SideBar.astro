@@ -6,12 +6,13 @@ import Calendar from "@/components/widget/Calendar.astro";
 import Categories from "@/components/widget/Categories.astro";
 import Dynamic from "@/components/widget/Dynamic.astro";
 import Music from "@/components/widget/Music.astro";
+import Presence from "@/components/widget/Presence.astro";
 import Profile from "@/components/widget/Profile.astro";
 import SidebarTOC from "@/components/widget/SidebarTOC.astro";
 import SiteInfo from "@/components/widget/SiteInfo.astro";
 import SiteStats from "@/components/widget/SiteStats.astro";
 import Tags from "@/components/widget/Tags.astro";
-import { sidebarLayoutConfig } from "@/config";
+import { presenceConfig, sidebarLayoutConfig } from "@/config";
 import type {
 	MobileBottomComponentConfig,
 	WidgetComponentConfig,
@@ -53,6 +54,7 @@ const componentMap = {
 	stats: SiteStats,
 	calendar: Calendar,
 	music: Music,
+	presence: Presence,
 	siteInfo: SiteInfo,
 	dynamic: Dynamic,
 };
@@ -83,7 +85,12 @@ const getComponents = (): (
 const filterAndSortComponents = (
 	components: (WidgetComponentConfig | MobileBottomComponentConfig)[],
 ) => {
-	return components.filter((comp) => comp.enable);
+	return components.filter(
+		(comp) =>
+			comp.enable &&
+			(comp.type !== "presence" ||
+				(presenceConfig.enable && !!presenceConfig.endpoint)),
+	);
 };
 
 // 分离 top 和 sticky 位置的组件（保持原始数组顺序）

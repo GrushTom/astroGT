@@ -2,6 +2,10 @@ import Key from "../i18nKey";
 import type { Translation } from "../translation";
 
 export const zh_TW: Translation = {
+	[Key.bilibiliFetchError]: "嗶哩嗶哩追番載入失敗",
+	[Key.bilibiliFetchErrorDesc]: "暫時無法取得追番清單，請稍後重試。",
+	[Key.bilibiliPrivateList]: "追番/追劇清單未公開，請調整嗶哩嗶哩個人空間隱私設定後重新建置網站。",
+	[Key.bangumiRefreshFailed]: "部分分類更新失敗，已保留既有內容，請稍後重新整理。",
 	[Key.home]: "首頁",
 	[Key.about]: "關於我",
 	[Key.archive]: "歸檔",
@@ -529,4 +533,21 @@ export const zh_TW: Translation = {
 	[Key.exitImmersiveReading]: "退出沉浸閱讀",
 	[Key.tocExpand]: "展開目錄",
 	[Key.tocCollapse]: "摺疊目錄",
+
+	// Windows 即時狀態
+	[Key.presence]: "此刻",
+	[Key.presenceOnline]: "線上",
+	[Key.presenceAway]: "暫離",
+	[Key.presenceOffline]: "離線",
+	[Key.presenceConnecting]: "正在連線…",
+	[Key.presenceUnavailable]: "狀態暫時無法取得",
+	[Key.presenceAwayMessage]: "離開一下，稍後回來",
+	[Key.presenceOfflineMessage]: "暫時不在電腦前",
+	[Key.presenceDefaultActivity]: "正在使用電腦",
+	[Key.presenceMusicPlaying]: "網易雲 · 正在聽",
+	[Key.presenceMusicPaused]: "網易雲 · 已暫停",
+	[Key.presenceUnknownArtist]: "未知歌手",
+	[Key.presenceUpdatedJustNow]: "剛剛更新",
+	[Key.presenceUpdatedMinutesAgo]: "{minutes} 分鐘前更新",
+	[Key.presenceUpdatedLongAgo]: "最後在線已超過一小時",
 };
