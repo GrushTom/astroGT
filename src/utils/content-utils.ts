@@ -15,9 +15,18 @@ async function getRawSortedPosts() {
 		if (!a.data.pinned && b.data.pinned) return 1;
 
 		// 如果置顶状态相同，则按发布日期排序
-		const dateA = new Date(a.data.published);
-		const dateB = new Date(b.data.published);
-		return dateA > dateB ? -1 : 1;
+		const dateDiff = b.data.published.getTime() - a.data.published.getTime();
+		if (dateDiff !== 0) return dateDiff;
+
+		// Group date ties before comparing series positions to keep ordering transitive.
+		const seriesA = a.data.series.trim();
+		const seriesB = b.data.series.trim();
+		const groupDiff = seriesA.localeCompare(seriesB);
+		if (groupDiff !== 0) return groupDiff;
+		if (seriesA && seriesA === seriesB) {
+			return sortBySeriesOrder(a, b) || a.id.localeCompare(b.id);
+		}
+		return a.id.localeCompare(b.id);
 	});
 	return sorted;
 }
