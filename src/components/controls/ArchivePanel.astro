@@ -2,12 +2,12 @@
 import { siteConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
-import { getSortedPostsList } from "@/utils/content-utils";
+import { getPostListing } from "@/utils/content-utils";
 import { getPostUrlBySlug, url } from "@/utils/url-utils";
 
 // 归档列表：全量按年分组，服务端渲染。筛选（?tag=/?category=/?uncategorized）
 // 与年份折叠由客户端脚本处理——数据本身在构建期已全部就绪。
-const sortedPostsList = await getSortedPostsList();
+const sortedPostsList = await getPostListing();
 
 // 严格按发布时间倒序（不受置顶影响），镜像原 Svelte 版行为
 const posts = sortedPostsList
@@ -108,7 +108,7 @@ const foldOnFilter = collapseAllButFirst;
               aria-label={post.data.title}
               class="archive-post group btn-plain block! h-10 w-full rounded-lg hover:text-[initial]"
               data-tags={JSON.stringify(post.data.tags || [])}
-              data-category={post.data.category || ""}
+              data-categories={JSON.stringify(post.listingCategories)}
             >
               <div class="flex flex-row justify-start items-center h-full">
                 {/* date */}
@@ -207,17 +207,17 @@ const foldOnFilter = collapseAllButFirst;
           } catch {
             rowTags = [];
           }
-          const rowCategory = row.dataset.category || "";
+          const rowCategories = JSON.parse(row.dataset.categories || "[]");
 
           let match = true;
           if (tags.length > 0) {
             match = match && rowTags.some((t) => tags.includes(t));
           }
           if (categories.length > 0) {
-            match = match && !!rowCategory && categories.includes(rowCategory);
+            match = match && rowCategories.some((c) => categories.includes(c));
           }
           if (uncategorized) {
-            match = match && !rowCategory;
+            match = match && rowCategories.includes("");
           }
 
           row.hidden = !match;

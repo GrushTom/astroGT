@@ -1,14 +1,21 @@
 ---
-draft: true
-title: Markdown PlantUML 图表
+title: 图表：PlantUML 使用指南
 published: 1970-01-01
 description: 用于验证 Firefly 中 PlantUML 插件渲染、主题切换与交互能力的示例文章。
-tags: [PlantUML, Firefly, Markdown]
+image: ''
+tags:
+- PlantUML
+- Firefly
+- Markdown
 category: 文章示例
+draft: false
+lang: zh-CN
 slug: markdown-plantuml
-series: "Firefly 功能示例2"
-seriesOrder: 4
+series: Markdown 写作指南
+seriesOrder: 9
 ---
+
+本章按图表类型整理 PlantUML 示例。围栏语言写为 `plantuml`，图表正文通常以 `@startuml` 开始、`@enduml` 结束。通过“所属系列”可以切换到 Mermaid 章节比较写法。
 
 ## Markdown 中 PlantUML 图表指南
 
@@ -250,4 +257,3 @@ Rel(web, plantuml, "请求图表 SVG")
 LAYOUT_LEFT_RIGHT()
 @enduml
 ```
-

@@ -1,11 +1,16 @@
 ---
-title: MDX 格式文章示例
+title: 组件扩展：MDX 与 JSX
 published: 1970-01-02
 description: 这是一个 MDX 格式的示例文章，展示了如何在 Markdown 中使用 JSX。
-tags: [MDX, 文章示例]
+tags:
+- MDX
+- 文章示例
 category: 文章示例
 draft: false
 image: api
+series: Markdown 写作指南
+seriesOrder: 12
+lang: zh-CN
 ---
 
 import { Icon } from 'astro-icon/components'
@@ -16,7 +21,7 @@ import { Icon } from 'astro-icon/components'
 
 ## Markdown 和 MDX 的区别
 - Markdown (MD) 是一种轻量级标记语言，允许用户使用纯文本格式编写文档，然后将其转换为格式化的HTML。它因其简洁易用的语法而广受欢迎，特别适合编写文档和博客文章。
-- MDX 是一种扩展了 Markdown 语法的格式，允许在 Markdown 文档中无缝地插入 JSX 代码。通过 MDX，用户可以在文档中嵌入 React 组件，从而实现更丰富的交互性和动态性。
+- MDX 是一种扩展了 Markdown 语法的格式，允许在 Markdown 文档中无缝地插入 JSX 代码。本项目通过 Astro 的 MDX 集成导入组件；可用组件类型取决于项目安装的框架集成，下面以 Astro 图标组件为例。
 
 | 特性 | Markdown | MDX |
 | :--- | :--- | :--- |
@@ -24,7 +29,7 @@ import { Icon } from 'astro-icon/components'
 | HTML 标签 | 支持 | 支持 (作为 JSX) |
 | 组件导入 | 不支持 | 支持 (import) |
 | 动态数据 | 不支持 | 支持 (JS 表达式) |
-| 样式定制 | 有限 (class/style) | 灵活 (className/CSS-in-JS) |
+| 样式定制 | 有限 (class/style) | 取决于组件与项目样式系统 |
 
 ## 使用组件
 

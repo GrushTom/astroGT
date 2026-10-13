@@ -1,7 +1,7 @@
 ---
-title: Meowtils 文档教程（一）：安装与基础操作
+title: Meowtils 使用指南：安装、功能与扩展开发
 published: 2026-10-11
-description: 概括 Forge 与 Lunar Client 安装方式、界面操作、配置管理和自动更新，附官方文档入口。
+description: 涵盖安装、功能模块、扩展开发与排错，通过所属系列按顺序阅读四个章节。
 image: ''
 tags:
 - Minecraft

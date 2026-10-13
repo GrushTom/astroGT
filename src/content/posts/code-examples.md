@@ -1,15 +1,30 @@
 ---
-title: Firefly 代码块示例
+title: 代码：行内代码、代码块与高亮
 published: 1970-01-03
-pinned: false
 description: 在Firefly中使用表达性代码的代码块在 Markdown 中的外观。
-tags:
-  - Markdown
-  - Firefly
-category: 文章示例
-draft: true
 image: ./images/firefly3.webp
+tags:
+- Markdown
+- Firefly
+category: 文章示例
+draft: false
+lang: zh-CN
+pinned: false
+series: Markdown 写作指南
+seriesOrder: 5
 ---
+
+先区分行内代码与代码块：短命令写成 `pnpm dev`，多行示例使用围栏代码块。本章在保留可运行示例的基础上，按语法高亮、标题、标记、换行与行号介绍 Expressive Code。
+
+````markdown
+行内代码：`pnpm dev`
+
+```js
+console.log("Hello Markdown");
+```
+````
+
+代码中的反引号也要展示时，外层围栏使用更多反引号。下面的高亮参数属于站点扩展，移植到其他平台时需确认支持。
 
 在这里，我们将探索如何使用 [Expressive Code](https://expressive-code.com/) 展示代码块。提供的示例基于官方文档，您可以参考以获取更多详细信息。
 

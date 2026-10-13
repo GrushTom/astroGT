@@ -1,15 +1,30 @@
 ---
-title: KaTeX 数学公式示例
+title: 数学公式：KaTeX 写法与示例
 published: 1970-01-02
 description: 展示 Firefly 主题对 KaTeX 数学公式的支持，包括行内公式、块级公式和复杂数学符号。
-tags:
-  - KaTeX
-  - Math
-  - 示例
-category: 文章示例
-draft: true
 image: api
+tags:
+- KaTeX
+- Math
+- 示例
+category: 文章示例
+draft: false
+lang: zh-CN
+series: Markdown 写作指南
+seriesOrder: 7
 ---
+
+行内公式使用一对 `$`，独立公式使用两对 `$$`。下面先给出源代码，再按公式类型查看渲染示例。
+
+```latex
+行内公式：$E = mc^2$
+
+$$
+\frac{a}{b} + \sqrt{x}
+$$
+```
+
+行内公式：$E = mc^2$。公式命令遵循 KaTeX 支持的 LaTeX 子集。
 
 本文展示了 [Firefly](https://github.com/CuteLeaf/Firefly) 主题对 KaTeX 数学公式的渲染支持。
 

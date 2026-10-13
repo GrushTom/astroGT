@@ -32,3 +32,7 @@ Use Conventional Commits, matching the current history: `feat: ...`, `fix: ...`,
 ## Security & Configuration Tips
 
 Do not commit secrets, tokens, or service keys in config files. Keep deployment-specific settings in the target platform environment, and review generated files such as `dist`, `src/constants/lqips.json`, and `src/constants/icons.ts` before committing them.
+
+## Documentation Series
+
+Organized multi-chapter tutorials must share a `series` value and explicit ascending `seriesOrder` values. Prefer a concise overview at order `0`. Public article lists show only the first published chapter; every published chapter remains accessible through the article's series navigation. Keep existing URLs and publication dates when reorganizing. Do not use folder names to control reading order.

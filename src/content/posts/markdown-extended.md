@@ -1,21 +1,24 @@
 ---
-title: Markdown 扩展功能
+title: Firefly 扩展：提示框、仓库卡片与折叠内容
 published: 1970-01-01
 updated: 1970-01-01
 description: 了解 Firefly 中的 Markdown 功能
-image: ""
+image: ''
 tags:
-  - 演示
-  - 示例
-  - Markdown
-  - Firefly
+- 演示
+- 示例
+- Markdown
+- Firefly
 category: 文章示例
-draft: true
+draft: false
+lang: zh-CN
+series: Markdown 写作指南
+seriesOrder: 6
 ---
 
 ## GitHub 仓库卡片
 
-您可以添加链接到 GitHub 仓库的动态卡片，在页面加载时，仓库信息会从 GitHub API 获取。
+使用仓库卡片展示项目名称与摘要。本项目在构建前生成仓库信息缓存，更新展示数据需要重新生成并构建。
 
 ::github{repo="CuteLeaf/Firefly"}
 
@@ -33,9 +36,11 @@ Firefly 采用了 [rehype-callouts](https://github.com/lin-stephanie/rehype-call
 // src/config/siteConfig.ts
 export const siteConfig: SiteConfig = {
   // ...
-  rehypeCallouts: {
+  post: {
+    rehypeCallouts: {
     // 选项: "github" | "obsidian" | "vitepress"
-    theme: "github",
+      theme: "github",
+    },
   },
   // ...
 };

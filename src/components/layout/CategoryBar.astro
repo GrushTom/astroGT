@@ -2,7 +2,7 @@
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { Icon } from "astro-icon/components";
-import { getCategoryList, getSortedPostsList } from "@/utils/content-utils";
+import { getCategoryList, getPostListing } from "@/utils/content-utils";
 import { url } from "@/utils/url-utils";
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 const { currentPostCategory } = Astro.props as Props;
 
 const categories = await getCategoryList();
-const totalPosts = (await getSortedPostsList()).length;
+const totalPosts = (await getPostListing()).length;
 const homeUrl = url("/");
 const archiveUrl = url("/archive/");
 

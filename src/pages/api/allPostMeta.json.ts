@@ -1,7 +1,7 @@
-import { getSortedPosts } from "@/utils/content-utils";
+import { getPostListing } from "@/utils/content-utils";
 
 export async function GET(): Promise<Response> {
-	const posts = await getSortedPosts();
+	const posts = await getPostListing();
 
 	const allPostsData = posts
 		.map((post) => ({

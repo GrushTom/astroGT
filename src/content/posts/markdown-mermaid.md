@@ -1,13 +1,29 @@
 ---
-title: Markdown Mermaid 图表
+title: 图表：Mermaid 使用指南
 published: 1970-01-01
-pinned: false
 description: 一个包含 Mermaid 的 Markdown 博客文章简单示例。
-tags: [Markdown, 博客, Mermaid, Firefly]
+image: ''
+tags:
+- Markdown
+- 博客
+- Mermaid
+- Firefly
 category: 文章示例
 draft: false
+lang: zh-CN
+pinned: false
+series: Markdown 写作指南
+seriesOrder: 8
 ---
-# Markdown 中 Mermaid 图表完整指南
+
+使用 `mermaid` 围栏代码块描述关系图。先选图表类型，再填写节点与连线；下文按类型展示源代码和效果。
+
+````markdown
+```mermaid
+flowchart LR
+  A[编写文章] --> B[预览] --> C[发布]
+```
+````
 
 本文演示如何在 Markdown 文档中使用 Mermaid 创建各种复杂图表，包括流程图、时序图、甘特图、类图和状态图。
 

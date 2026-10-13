@@ -1,27 +1,46 @@
 ---
-title: 在文章中嵌入视频
+title: 多媒体：嵌入视频
 published: 1970-01-01
 description: 这篇文章演示如何在博客文章中嵌入视频。
-tags: [示例, 视频, Firefly]
+image: ''
+tags:
+- 示例
+- 视频
+- Firefly
 category: 文章示例
 draft: false
+lang: zh-CN
+series: Markdown 写作指南
+seriesOrder: 10
 ---
 
-只需从 YouTube 或其他平台复制嵌入代码，然后将其粘贴到 markdown 文件中。
+视频使用平台提供的嵌入地址，放在 Markdown 正文中，不要放进顶部 YAML 元数据。普通的视频观看页面地址不一定可以直接嵌入。
 
-```yaml
----
-title: 在文章中嵌入视频
-published: 2023-10-19
-// ...
----
+## 基本写法
 
-<iframe width="100%" height="468" src="https://www.youtube.com/embed/5gIf0_xpFPI?si=N1WTorLKL0uwLsU_" title="YouTube video player" frameborder="0" allowfullscreen></iframe>
+```html
+<iframe
+  src="https://www.youtube.com/embed/5gIf0_xpFPI"
+  title="YouTube 示例视频"
+  width="100%"
+  height="468"
+  loading="lazy"
+  allowfullscreen>
+</iframe>
 ```
-## YouTube
 
-<iframe width="100%" height="468" src="https://www.youtube.com/embed/5gIf0_xpFPI?si=N1WTorLKL0uwLsU_" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+## YouTube 示例
 
-## Bilibili
+<iframe width="100%" height="468" src="https://www.youtube.com/embed/5gIf0_xpFPI" title="YouTube 示例视频" loading="lazy" allowfullscreen></iframe>
 
-<iframe width="100%" height="468" src="//player.bilibili.com/player.html?bvid=BV1fK4y1s7Qf&p=1&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" &autoplay=0> </iframe>
+## Bilibili 示例
+
+```html
+<iframe src="https://player.bilibili.com/player.html?bvid=BV1fK4y1s7Qf&p=1&autoplay=0" title="Bilibili 示例视频" width="100%" height="468" loading="lazy" allowfullscreen></iframe>
+```
+
+<iframe src="https://player.bilibili.com/player.html?bvid=BV1fK4y1s7Qf&p=1&autoplay=0" title="Bilibili 示例视频" width="100%" height="468" loading="lazy" allowfullscreen></iframe>
+
+## 无法播放时
+
+先确认原视频可访问、平台允许嵌入，再检查网络和浏览器限制。嵌入播放器由第三方提供，文章中的代码无法保证视频始终可用。

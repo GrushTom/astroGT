@@ -2,6 +2,7 @@ import { type CollectionEntry, getCollection } from "astro:content";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { getCategoryUrl } from "@utils/url-utils";
+import { collapseSeries, sortBySeriesOrder } from "./post-listing";
 
 // // Retrieve posts and sort them by publication date
 async function getRawSortedPosts() {
@@ -45,6 +46,13 @@ export async function getSortedPosts(): Promise<CollectionEntry<"posts">[]> {
 
 	return sorted;
 }
+/** List pages show the first ordered chapter; article routes retain every chapter. */
+export async function getPostListing(): Promise<
+	(CollectionEntry<"posts"> & { listingCategories: string[] })[]
+> {
+	return collapseSeries(await getRawSortedPosts());
+}
+
 export type PostForList = {
 	id: string;
 	data: CollectionEntry<"posts">["data"];
@@ -89,27 +97,6 @@ export async function getSortedProjects(): Promise<
 			a.data.title.localeCompare(b.data.title)
 		);
 	});
-}
-
-/**
- * 系列内排序：按 seriesOrder 升序，未设置者排最后；再按发布日期降序、标题兜底
- * 注意：判断 seriesOrder 是否设置必须用 !== undefined，否则 0 会被当作「未设置」排到最后
- */
-function sortBySeriesOrder(a: PostForList, b: PostForList): number {
-	const ao = a.data.seriesOrder;
-	const bo = b.data.seriesOrder;
-	if (ao !== undefined && bo !== undefined) {
-		if (ao !== bo) return ao - bo;
-	} else if (ao === undefined && bo !== undefined) {
-		return 1;
-	} else if (ao !== undefined && bo === undefined) {
-		return -1;
-	}
-	// tiebreaker: 相同序号或都未设置时，按发布日期降序、标题兜底
-	return (
-		b.data.published.getTime() - a.data.published.getTime() ||
-		a.data.title.localeCompare(b.data.title)
-	);
 }
 
 /**
@@ -166,9 +153,7 @@ export type Tag = {
 };
 
 export async function getTagList(): Promise<Tag[]> {
-	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
-		return import.meta.env.PROD ? data.draft !== true : true;
-	});
+	const allBlogPosts = await getPostListing();
 
 	const countMap: { [key: string]: number } = {};
 	allBlogPosts.forEach((post: { data: { tags: string[] } }) => {
@@ -193,24 +178,14 @@ export type Category = {
 };
 
 export async function getCategoryList(): Promise<Category[]> {
-	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
-		return import.meta.env.PROD ? data.draft !== true : true;
-	});
+	const allBlogPosts = await getPostListing();
 	const count: { [key: string]: number } = {};
-	allBlogPosts.forEach((post: { data: { category: string | null } }) => {
-		if (!post.data.category) {
-			const ucKey = i18n(I18nKey.uncategorized);
-			count[ucKey] = count[ucKey] ? count[ucKey] + 1 : 1;
-			return;
+	for (const post of allBlogPosts) {
+		for (const category of post.listingCategories) {
+			const name = category || i18n(I18nKey.uncategorized);
+			count[name] = (count[name] || 0) + 1;
 		}
-
-		const categoryName =
-			typeof post.data.category === "string"
-				? post.data.category.trim()
-				: String(post.data.category).trim();
-
-		count[categoryName] = count[categoryName] ? count[categoryName] + 1 : 1;
-	});
+	}
 
 	const lst = Object.keys(count).sort((a, b) => {
 		return (
@@ -269,13 +244,15 @@ export async function getRelatedPosts(
 	currentPost: CollectionEntry<"posts">,
 	maxCount = 5,
 ): Promise<PostForList[]> {
-	const allPosts = await getCollection<"posts">("posts", ({ data }) => {
-		return import.meta.env.PROD ? data.draft !== true : true;
-	});
+	const allPosts = await getPostListing();
 
 	// 排除自身和加密文章
 	const candidates = allPosts.filter(
-		(p) => p.id !== currentPost.id && !p.data.password,
+		(p) =>
+			p.id !== currentPost.id &&
+			!p.data.password &&
+			(!currentPost.data.series.trim() ||
+				p.data.series.trim() !== currentPost.data.series.trim()),
 	);
 
 	const currentTags = new Set(currentPost.data.tags || []);
