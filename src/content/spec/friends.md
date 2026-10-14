@@ -1,6 +1,19 @@
+# 先友后链
+> [!TIP] 在开始之前，请先添加该网站的友链信息
+
+```json
+{
+  "name": "GrushTom的小窝🏠",
+  "avatar": "https://blog.grushtom.com/assets/images/favicon.ico",
+  "description": "天下达者为先 我亦不让分毫",
+  "url": "https://blog.grushtom.com"
+}
+```
+
 # 友链管理
 
 本目录用于存放友链的JSON文件，系统会自动加载并显示这些友链。
+
 
 ## JSON文件格式
 
