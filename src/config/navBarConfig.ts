@@ -140,7 +140,7 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 
 	links.push({
 		name: "开往",
-		url: "https://www.travellings.cn/train.html",
+		url: "https://www.travellings.cn/go.html",
 		icon: "fa7-solid:train",
 		external: true,
 	});
