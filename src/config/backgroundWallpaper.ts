@@ -2,21 +2,21 @@ import type { BackgroundWallpaperConfig } from "@/types/backgroundWallpaper";
 
 export const backgroundWallpaper: BackgroundWallpaperConfig = {
 	// 壁纸模式："banner" 横幅壁纸，"fullscreen" 全屏壁纸，"overlay" 覆盖透明，"none" 纯色背景无壁纸
-	mode: "banner",
+	mode: "fullscreen",
 	// 是否允许用户通过导航栏切换壁纸模式，设为false可提升性能（只渲染当前模式）
 	playerEnable: false,
 	// 背景图片配置
 	src: {
 		// 桌面背景图片 - 支持数组，随机选择
 		desktop: [
-			"https://i.mukyu.ru/random?imgproxy=pixiv.nl&size=regular",
+			//"https://i.mukyu.ru/random?imgproxy=pixiv.nl&size=regular",
 			"https://t.alcy.cc/pc",
 			// "https://i.mukyu.ru/random?imgproxy=pixiv.re&size=regular",  备用接口
 			// "https://i.mukyu.ru/random?imgproxy=pixiv.cat&size=regular",
 		],
 		// 移动背景图片 - 支持数组，随机选择
 		mobile: [
-			"https://i.mukyu.ru/random?imgproxy=pixiv.nl&size=regular",
+			//"https://i.mukyu.ru/random?imgproxy=pixiv.nl&size=regular",
 			"https://t.alcy.cc/mp",
 		],
 	},
